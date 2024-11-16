@@ -16,19 +16,19 @@
 7. ??
 8. ??
 
-Stack pointer is not user accessible
-Status register is not user accessible
-Controller register is not user accessible
-Program Counter is not user accessible
+- Stack pointer is not user accessible
+- Status register is not user accessible
+- Controller register is not user accessible
+- Program Counter is not user accessible
 
 ## Instruction Set
-Supports directly operating on memory through the `&` directive
-Branch instruction per flag in status register
-Branch instruction per flag in controller register
-Branch instruction to check busy status of a peripheral
-Push/Pop instructions to move 1 bytes to/from the stack
-Writing to memory through either the 0 page (1 byte addressing), or any other accessible region (2 byte addressing)
+- Supports directly operating on memory through the `&` directive
+- Branch instruction per flag in status register
+- Branch instruction per flag in controller register
+- Branch instruction to check busy status of a peripheral
+- Push/Pop instructions to move 1 bytes to/from the stack
+- Writing to memory through either the 0 page (1 byte addressing), or any other accessible region (2 byte addressing)
 
 ## Peripheral/Co-processor Support
-Graphics co processor that works by writing commands and arguments to a specific region of memory
-Dedicated instruction to issue the "GO" signal to the peripheral
+- Graphics co processor that works by writing commands and arguments to a specific region of memory
+- Dedicated instruction to issue the "GO" signal to the peripheral
