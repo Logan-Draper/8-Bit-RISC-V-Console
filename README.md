@@ -71,8 +71,6 @@ All operands can be either register references or memory locations (where applic
 | GO          | Signal to a peripheral, specified in rs1, to begin execution                                      | rs1           |
 
 ### Instruction Op Codes
-- Some instructions will use the same opcode as others, with the 2nd byte representing the specific instruction type (OPCODE + 1)
-  - The encoded operands will then start on the following byte (OPCODE + 2)
 | Instruction       | Op Code | Operand Encoding | 2nd Byte |
 |:------------------|:--------|:-----------------|:---------|
 | NOP               | 0       | n/a              |          |
@@ -196,12 +194,11 @@ All operands can be either register references or memory locations (where applic
 | GO imm            | 12      | 13               |          |
 | GO mem            | 12      | 14               |          |
 
+
+- Some instructions will use the same opcode as others, with the 2nd byte representing the specific instruction type (OPCODE + 1)
+  - The encoded operands will then start on the following byte (OPCODE + 2)
+
 ### Instruction Encoding
-- [x:y] means the top 4 bits represent x, the lower 4 bits represent y
-- [y] means the entire 8-bits are dedicated to y
-- `r` is a register reference, which uses the value in the register directly
-- `m` is a register reference, which uses the value in the register as a zero page offset
-- `i` is an 8-bit immediate
 | Code | Operand Arrangement | Byte 1 | Byte 2 |
 |:-----|:--------------------|:-------|:-------|
 | 0    | r, r, r             | [r:r]  | [r:0]  |
@@ -220,3 +217,9 @@ All operands can be either register references or memory locations (where applic
 | 13   | r                   | [r:0]  | n/a    |
 | 14   | i                   | [i]    | n/a    |
 | 15   | m                   | [m:0]  | n/a    |
+
+- [x:y] means the top 4 bits represent x, the lower 4 bits represent y
+- [y] means the entire 8-bits are dedicated to y
+- `r` is a register reference, which uses the value in the register directly
+- `m` is a register reference, which uses the value in the register as a zero page offset
+- `i` is an 8-bit immediate
