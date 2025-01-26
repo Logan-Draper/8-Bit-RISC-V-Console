@@ -74,7 +74,7 @@ All operands can be either register references or memory locations (where applic
 - Some instructions will use the same opcode as others, with the 2nd byte representing the specific instruction type (OPCODE + 1)
   - The encoded operands will then start on the following byte (OPCODE + 2)
 | Instruction       | Op Code | Operand Encoding | 2nd Byte |
-|:------------------|:--------|------------------|----------|
+|:------------------|:--------|:-----------------|:---------|
 | NOP               | 0       | n/a              |          |
 | ADD reg, reg, reg | 1       | 0                | 1        |
 | ADD reg, reg, imm | 1       | 1                | 1        |
@@ -129,51 +129,51 @@ All operands can be either register references or memory locations (where applic
 | CMP mem, mem      | 8       | 11               |          |
 | CMP imm, mem      | 8       | 10 (swapped)     |          |
 | CMP mem, imm      | 8       | 10               |          |
-| BNEG reg, reg     | 9      | 6                | 1        |
-| BNEG reg, imm     | 9      | 7                | 1        |
-| BNEG imm, reg     | 9      | 7 (swapped)      | 1        |
-| BNEG imm, imm     | 9      | 12               | 1        |
-| BNEG reg, mem     | 9      | 8                | 1        |
-| BNEG mem, reg     | 9      | 9                | 1        |
-| BNEG mem, mem     | 9      | 11               | 1        |
-| BNEG imm, mem     | 9      | 10 (swapped)     | 1        |
-| BNEG mem, imm     | 9      | 10               | 1        |
-| BZO reg, reg      | 9      | 6                | 2        |
-| BZO reg, imm      | 9      | 7                | 2        |
-| BZO imm, reg      | 9      | 7 (swapped)      | 2        |
-| BZO imm, imm      | 9      | 12               | 2        |
-| BZO reg, mem      | 9      | 8                | 2        |
-| BZO mem, reg      | 9      | 9                | 2        |
-| BZO mem, mem      | 9      | 11               | 2        |
-| BZO imm, mem      | 9      | 10 (swapped)     | 2        |
-| BZO mem, imm      | 9      | 10               | 2        |
-| BLE reg, reg      | 9      | 6                | 3        |
-| BLE reg, imm      | 9      | 7                | 3        |
-| BLE imm, reg      | 9      | 7 (swapped)      | 3        |
-| BLE imm, imm      | 9      | 12               | 3        |
-| BLE reg, mem      | 9      | 8                | 3        |
-| BLE mem, reg      | 9      | 9                | 3        |
-| BLE mem, mem      | 9      | 11               | 3        |
-| BLE imm, mem      | 9      | 10 (swapped)     | 3        |
-| BLE mem, imm      | 9      | 10               | 3        |
-| BOF reg, reg      | 9      | 6                | 4        |
-| BOF reg, imm      | 9      | 7                | 4        |
-| BOF imm, reg      | 9      | 7 (swapped)      | 4        |
-| BOF imm, imm      | 9      | 12               | 4        |
-| BOF reg, mem      | 9      | 8                | 4        |
-| BOF mem, reg      | 9      | 9                | 4        |
-| BOF mem, mem      | 9      | 11               | 4        |
-| BOF imm, mem      | 9      | 10 (swapped)     | 4        |
-| BOF mem, imm      | 9      | 10               | 4        |
-| BCA reg, reg      | 9      | 6                | 5        |
-| BCA reg, imm      | 9      | 7                | 5        |
-| BCA imm, reg      | 9      | 7 (swapped)      | 5        |
-| BCA imm, imm      | 9      | 12               | 5        |
-| BCA reg, mem      | 9      | 8                | 5        |
-| BCA mem, reg      | 9      | 9                | 5        |
-| BCA mem, mem      | 9      | 11               | 5        |
-| BCA imm, mem      | 9      | 10 (swapped)     | 5        |
-| BCA mem, imm      | 9      | 10               | 5        |
+| BNEG reg, reg     | 9       | 6                | 1        |
+| BNEG reg, imm     | 9       | 7                | 1        |
+| BNEG imm, reg     | 9       | 7 (swapped)      | 1        |
+| BNEG imm, imm     | 9       | 12               | 1        |
+| BNEG reg, mem     | 9       | 8                | 1        |
+| BNEG mem, reg     | 9       | 9                | 1        |
+| BNEG mem, mem     | 9       | 11               | 1        |
+| BNEG imm, mem     | 9       | 10 (swapped)     | 1        |
+| BNEG mem, imm     | 9       | 10               | 1        |
+| BZO reg, reg      | 9       | 6                | 2        |
+| BZO reg, imm      | 9       | 7                | 2        |
+| BZO imm, reg      | 9       | 7 (swapped)      | 2        |
+| BZO imm, imm      | 9       | 12               | 2        |
+| BZO reg, mem      | 9       | 8                | 2        |
+| BZO mem, reg      | 9       | 9                | 2        |
+| BZO mem, mem      | 9       | 11               | 2        |
+| BZO imm, mem      | 9       | 10 (swapped)     | 2        |
+| BZO mem, imm      | 9       | 10               | 2        |
+| BLE reg, reg      | 9       | 6                | 3        |
+| BLE reg, imm      | 9       | 7                | 3        |
+| BLE imm, reg      | 9       | 7 (swapped)      | 3        |
+| BLE imm, imm      | 9       | 12               | 3        |
+| BLE reg, mem      | 9       | 8                | 3        |
+| BLE mem, reg      | 9       | 9                | 3        |
+| BLE mem, mem      | 9       | 11               | 3        |
+| BLE imm, mem      | 9       | 10 (swapped)     | 3        |
+| BLE mem, imm      | 9       | 10               | 3        |
+| BOF reg, reg      | 9       | 6                | 4        |
+| BOF reg, imm      | 9       | 7                | 4        |
+| BOF imm, reg      | 9       | 7 (swapped)      | 4        |
+| BOF imm, imm      | 9       | 12               | 4        |
+| BOF reg, mem      | 9       | 8                | 4        |
+| BOF mem, reg      | 9       | 9                | 4        |
+| BOF mem, mem      | 9       | 11               | 4        |
+| BOF imm, mem      | 9       | 10 (swapped)     | 4        |
+| BOF mem, imm      | 9       | 10               | 4        |
+| BCA reg, reg      | 9       | 6                | 5        |
+| BCA reg, imm      | 9       | 7                | 5        |
+| BCA imm, reg      | 9       | 7 (swapped)      | 5        |
+| BCA imm, imm      | 9       | 12               | 5        |
+| BCA reg, mem      | 9       | 8                | 5        |
+| BCA mem, reg      | 9       | 9                | 5        |
+| BCA mem, mem      | 9       | 11               | 5        |
+| BCA imm, mem      | 9       | 10 (swapped)     | 5        |
+| BCA mem, imm      | 9       | 10               | 5        |
 | JAL reg, reg      | 10      | 6                |          |
 | JAL reg, imm      | 10      | 7                |          |
 | JAL imm, reg      | 10      | 7 (swapped)      |          |
@@ -203,7 +203,7 @@ All operands can be either register references or memory locations (where applic
 - `m` is a register reference, which uses the value in the register as a zero page offset
 - `i` is an 8-bit immediate
 | Code | Operand Arrangement | Byte 1 | Byte 2 |
-|:-----|:--------------------|--------|--------|
+|:-----|:--------------------|:-------|:-------|
 | 0    | r, r, r             | [r:r]  | [r:0]  |
 | 1    | r, r, i             | [r:r]  | [i]    |
 | 2    | r, r, m             | [r:r]  | [m:0]  |
