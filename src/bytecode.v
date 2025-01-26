@@ -2,8 +2,7 @@ module bytecode
 
 enum Opcode as u8 {
 	nop = 0
-	add
-	sub
+	alu  @[EXTRA]
 	push
 	pop
 	sbz
@@ -11,10 +10,23 @@ enum Opcode as u8 {
 	lbz
 	lb
 	cmp
-	b
+	b  @[EXTRA]
 	jal
 	j
 	_go
+}
+
+fn (opcode Opcode) get_extra(value u8) ?Extra {
+	$for op in Opcode.values {
+		if 'EXTRA' in op.attrs && opcode == op.value {
+			return match opcode {
+				.alu { ?Extra(Alu.from(value)!) }
+				.b { ?Extra(Branch.from(value)!) }
+				else { panic('Unreachable') }
+			}
+		}
+	}
+	return none
 }
 
 enum Encoding as u8 {
@@ -44,6 +56,20 @@ enum Branch as u8 {
 	bca
 }
 
+enum Alu as u8 {
+	add = 1
+	sub
+}
+
+type Extra = Branch | Alu
+
+fn (extra Extra) get_value() u8 {
+	return match extra {
+		Branch { u8(extra) }
+		Alu { u8(extra) }
+	}
+}
+
 enum Register as u8 {
 	a = 0
 	b
@@ -66,13 +92,21 @@ struct Memory {
 
 type Operand = Register_Ref | Immediate | Memory
 
+fn (operand Operand) get_value() u8 {
+	return match operand {
+		Register_Ref { u8(operand.reg) & 0xF }
+		Immediate { operand.val }
+		Memory { u8(operand.reg) & 0xF }
+	}
+}
+
 struct Instruction {
-	opcode      Opcode
-	branch_type ?Branch
-	encoding    Encoding
-	op1         Operand
-	op2         ?Operand
-	op3         ?Operand
+	opcode   Opcode
+	encoding Encoding
+	extra    ?Extra
+	op1      Operand
+	op2      ?Operand
+	op3      ?Operand
 }
 
 fn decode_op(op u8) !(Opcode, Encoding) {
@@ -80,6 +114,25 @@ fn decode_op(op u8) !(Opcode, Encoding) {
 	encoding := Encoding.from(op & 0xF) or { return error('Unknown encoding ${op & 0xF}') }
 
 	return opcode, encoding
+}
+
+fn (instruction Instruction) encode_instruction() ![]u8 {
+	if instruction == Instruction{} {
+		return [u8(0)]
+	}
+
+	mut encoding := []u8{}
+
+	encoding << ((u8(instruction.opcode) << 4) | u8(instruction.encoding))
+
+	if extra := instruction.extra {
+		encoding << extra.get_value()
+	}
+
+	encoding << encode_operands(instruction.encoding, instruction.op1, instruction.op2,
+		instruction.op3) or { return error('Unable to encode operands') }
+
+	return encoding
 }
 
 fn decode_operands(program []u8, offset u16, encoding Encoding) !(Operand, ?Operand, ?Operand) {
@@ -205,6 +258,18 @@ fn decode_operands(program []u8, offset u16, encoding Encoding) !(Operand, ?Oper
 	}
 }
 
+fn encode_operands(encoding Encoding, op1 Operand, op2 ?Operand, op3 ?Operand) ?[]u8 {
+	return match encoding {
+		.rrr, .rrm, .mrr, .mrm { [(op1.get_value() << 4) | op2?.get_value(), op3?.get_value() << 4] }
+		.rri, .mri { [(op1.get_value() << 4) | op2?.get_value(), op3?.get_value()] }
+		.rr, .rm, .mr, .mm { [op1.get_value() << 4 | op2?.get_value()] }
+		.ri, .mi { [op1.get_value() << 4, op2?.get_value()] }
+		.ii { [op1.get_value(), op2?.get_value()] }
+		.r, .m { [op1.get_value() << 4] }
+		.i { [op1.get_value()] }
+	}
+}
+
 pub fn decode(program []u8, program_counter u16) !Instruction {
 	if program_counter > program.len {
 		return error('End of program reached!')
@@ -216,25 +281,18 @@ pub fn decode(program []u8, program_counter u16) !Instruction {
 		return Instruction{}
 	}
 
-	branch_type := if opcode == .b {
-		?Branch(Branch.from(program[program_counter + 1]) or {
-			return error('Unknown branch type ${program[program_counter + 1]}')
-		})
-	} else {
-		?Branch(none)
-	}
-
+	extra := opcode.get_extra(program[program_counter + 1])
 	op1, op2, op3 := decode_operands(program, program_counter +
-		if branch_type != none { u16(2) } else { u16(1) }, encoding) or {
+		if extra == none { u16(1) } else { u16(2) }, encoding) or {
 		return error('Error while decoding operands')
 	}
 
 	return Instruction{
-		opcode:      opcode
-		branch_type: branch_type
-		encoding:    encoding
-		op1:         op1
-		op2:         op2
-		op3:         op3
+		opcode:   opcode
+		extra:    extra
+		encoding: encoding
+		op1:      op1
+		op2:      op2
+		op3:      op3
 	}
 }

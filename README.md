@@ -71,130 +71,130 @@ All operands can be either register references or memory locations (where applic
 | GO          | Signal to a peripheral, specified in rs1, to begin execution                                      | rs1           |
 
 ### Instruction Op Codes
-- Branch instructions all use the same opcode, with the 2nd byte representing the specific branch type (OPCODE + 1)
+- Some instructions will use the same opcode as others, with the 2nd byte representing the specific instruction type (OPCODE + 1)
   - The encoded operands will then start on the following byte (OPCODE + 2)
 | Instruction       | Op Code | Operand Encoding | 2nd Byte |
-|:------------------|:--------|------------------|---------|
-| NOP               | 0       | n/a              |         |
-| ADD reg, reg, reg | 1       | 0                |         |
-| ADD reg, reg, imm | 1       | 1                |         |
-| ADD reg, reg, mem | 1       | 2                |         |
-| ADD mem, reg, reg | 1       | 3                |         |
-| ADD mem, reg, imm | 1       | 4                |         |
-| ADD mem, reg, mem | 1       | 5                |         |
-| SUB reg, reg, reg | 2       | 0                |         |
-| SUB reg, reg, imm | 2       | 1                |         |
-| SUB reg, reg, mem | 2       | 2                |         |
-| SUB mem, reg, reg | 2       | 3                |         |
-| SUB mem, reg, imm | 2       | 4                |         |
-| SUB mem, reg, mem | 2       | 5                |         |
-| PUSH reg          | 3       | 13               |         |
-| PUSH imm          | 3       | 14               |         |
-| PUSH mem          | 3       | 15               |         |
-| POP reg           | 4       | 14               |         |
-| POP mem           | 4       | 15               |         |
-| SBZ reg, reg      | 5       | 6                |         |
-| SBZ reg, imm      | 5       | 7                |         |
-| SBZ reg, mem      | 5       | 8                |         |
-| SBZ imm, reg      | 5       | 7 (swapped)      |         |
-| SBZ imm, imm      | 5       | 12               |         |
-| SBZ imm, mem      | 5       | 10 (swapped)     |         |
-| SBZ mem, reg      | 5       | 9                |         |
-| SBZ mem, imm      | 5       | 10               |         |
-| SBZ mem, mem      | 5       | 11               |         |
-| SB reg, reg, reg  | 6       | 0                |         |
-| SB reg, reg, imm  | 6       | 1                |         |
-| SB reg, reg, mem  | 6       | 2                |         |
-| SB mem, reg, reg  | 6       | 3                |         |
-| SB mem, reg, imm  | 6       | 4                |         |
-| SB mem, reg, mem  | 6       | 5                |         |
-| LBZ reg, reg      | 7       | 6                |         |
-| LBZ reg, imm      | 7       | 7                |         |
-| LBZ reg, mem      | 7       | 8                |         |
-| LBZ mem, reg      | 7       | 9                |         |
-| LBZ mem, imm      | 7       | 10               |         |
-| LBZ mem, mem      | 7       | 11               |         |
-| LB reg, reg, reg  | 8       | 0                |         |
-| LB reg, reg, imm  | 8       | 1                |         |
-| LB reg, reg, mem  | 8       | 2                |         |
-| LB mem, reg, reg  | 8       | 3                |         |
-| LB mem, reg, imm  | 8       | 4                |         |
-| LB mem, reg, mem  | 8       | 5                |         |
-| CMP reg, reg      | 9       | 6                |         |
-| CMP reg, imm      | 9       | 7                |         |
-| CMP imm, reg      | 9       | 7 (swapped)      |         |
-| CMP imm, imm      | 9       | 12               |         |
-| CMP reg, mem      | 9       | 8                |         |
-| CMP mem, reg      | 9       | 9                |         |
-| CMP mem, mem      | 9       | 11               |         |
-| CMP imm, mem      | 9       | 10 (swapped)     |         |
-| CMP mem, imm      | 9       | 10               |         |
-| BNEG reg, reg     | 10      | 6                | 1       |
-| BNEG reg, imm     | 10      | 7                | 1       |
-| BNEG imm, reg     | 10      | 7 (swapped)      | 1       |
-| BNEG imm, imm     | 10      | 12               | 1       |
-| BNEG reg, mem     | 10      | 8                | 1       |
-| BNEG mem, reg     | 10      | 9                | 1       |
-| BNEG mem, mem     | 10      | 11               | 1       |
-| BNEG imm, mem     | 10      | 10 (swapped)     | 1       |
-| BNEG mem, imm     | 10      | 10               | 1       |
-| BZO reg, reg      | 10      | 6                | 2       |
-| BZO reg, imm      | 10      | 7                | 2       |
-| BZO imm, reg      | 10      | 7 (swapped)      | 2       |
-| BZO imm, imm      | 10      | 12               | 2       |
-| BZO reg, mem      | 10      | 8                | 2       |
-| BZO mem, reg      | 10      | 9                | 2       |
-| BZO mem, mem      | 10      | 11               | 2       |
-| BZO imm, mem      | 10      | 10 (swapped)     | 2       |
-| BZO mem, imm      | 10      | 10               | 2       |
-| BLE reg, reg      | 10      | 6                | 3       |
-| BLE reg, imm      | 10      | 7                | 3       |
-| BLE imm, reg      | 10      | 7 (swapped)      | 3       |
-| BLE imm, imm      | 10      | 12               | 3       |
-| BLE reg, mem      | 10      | 8                | 3       |
-| BLE mem, reg      | 10      | 9                | 3       |
-| BLE mem, mem      | 10      | 11               | 3       |
-| BLE imm, mem      | 10      | 10 (swapped)     | 3       |
-| BLE mem, imm      | 10      | 10               | 3       |
-| BOF reg, reg      | 10      | 6                | 4       |
-| BOF reg, imm      | 10      | 7                | 4       |
-| BOF imm, reg      | 10      | 7 (swapped)      | 4       |
-| BOF imm, imm      | 10      | 12               | 4       |
-| BOF reg, mem      | 10      | 8                | 4       |
-| BOF mem, reg      | 10      | 9                | 4       |
-| BOF mem, mem      | 10      | 11               | 4       |
-| BOF imm, mem      | 10      | 10 (swapped)     | 4       |
-| BOF mem, imm      | 10      | 10               | 4       |
-| BCA reg, reg      | 10      | 6                | 5       |
-| BCA reg, imm      | 10      | 7                | 5       |
-| BCA imm, reg      | 10      | 7 (swapped)      | 5       |
-| BCA imm, imm      | 10      | 12               | 5       |
-| BCA reg, mem      | 10      | 8                | 5       |
-| BCA mem, reg      | 10      | 9                | 5       |
-| BCA mem, mem      | 10      | 11               | 5       |
-| BCA imm, mem      | 10      | 10 (swapped)     | 5       |
-| BCA mem, imm      | 10      | 10               | 5       |
-| JAL reg, reg      | 11      | 6                |         |
-| JAL reg, imm      | 11      | 7                |         |
-| JAL imm, reg      | 11      | 7 (swapped)      |         |
-| JAL imm, imm      | 11      | 12               |         |
-| JAL reg, mem      | 11      | 8                |         |
-| JAL mem, reg      | 11      | 9                |         |
-| JAL mem, mem      | 11      | 11               |         |
-| JAL imm, mem      | 11      | 10 (swapped)     |         |
-| JAL mem, imm      | 11      | 10               |         |
-| J reg, reg        | 12      | 6                |         |
-| J reg, imm        | 12      | 7                |         |
-| J imm, reg        | 12      | 7 (swapped)      |         |
-| J imm, imm        | 12      | 12               |         |
-| J reg, mem        | 12      | 8                |         |
-| J mem, reg        | 12      | 9                |         |
-| J mem, mem        | 12      | 11               |         |
-| J imm, mem        | 12      | 10 (swapped)     |         |
-| J mem, imm        | 12      | 10               |         |
-| GO reg            | 13      | 12               |         |
-| GO imm            | 13      | 13               |         |
-| GO mem            | 13      | 14               |         |
+|:------------------|:--------|------------------|----------|
+| NOP               | 0       | n/a              |          |
+| ADD reg, reg, reg | 1       | 0                | 1        |
+| ADD reg, reg, imm | 1       | 1                | 1        |
+| ADD reg, reg, mem | 1       | 2                | 1        |
+| ADD mem, reg, reg | 1       | 3                | 1        |
+| ADD mem, reg, imm | 1       | 4                | 1        |
+| ADD mem, reg, mem | 1       | 5                | 1        |
+| SUB reg, reg, reg | 1       | 0                | 2        |
+| SUB reg, reg, imm | 1       | 1                | 2        |
+| SUB reg, reg, mem | 1       | 2                | 2        |
+| SUB mem, reg, reg | 1       | 3                | 2        |
+| SUB mem, reg, imm | 1       | 4                | 2        |
+| SUB mem, reg, mem | 1       | 5                | 2        |
+| PUSH reg          | 2       | 13               |          |
+| PUSH imm          | 2       | 14               |          |
+| PUSH mem          | 2       | 15               |          |
+| POP reg           | 3       | 14               |          |
+| POP mem           | 3       | 15               |          |
+| SBZ reg, reg      | 4       | 6                |          |
+| SBZ reg, imm      | 4       | 7                |          |
+| SBZ reg, mem      | 4       | 8                |          |
+| SBZ imm, reg      | 4       | 7 (swapped)      |          |
+| SBZ imm, imm      | 4       | 12               |          |
+| SBZ imm, mem      | 4       | 10 (swapped)     |          |
+| SBZ mem, reg      | 4       | 9                |          |
+| SBZ mem, imm      | 4       | 10               |          |
+| SBZ mem, mem      | 4       | 11               |          |
+| SB reg, reg, reg  | 5       | 0                |          |
+| SB reg, reg, imm  | 5       | 1                |          |
+| SB reg, reg, mem  | 5       | 2                |          |
+| SB mem, reg, reg  | 5       | 3                |          |
+| SB mem, reg, imm  | 5       | 4                |          |
+| SB mem, reg, mem  | 5       | 5                |          |
+| LBZ reg, reg      | 6       | 6                |          |
+| LBZ reg, imm      | 6       | 7                |          |
+| LBZ reg, mem      | 6       | 8                |          |
+| LBZ mem, reg      | 6       | 9                |          |
+| LBZ mem, imm      | 6       | 10               |          |
+| LBZ mem, mem      | 6       | 11               |          |
+| LB reg, reg, reg  | 7       | 0                |          |
+| LB reg, reg, imm  | 7       | 1                |          |
+| LB reg, reg, mem  | 7       | 2                |          |
+| LB mem, reg, reg  | 7       | 3                |          |
+| LB mem, reg, imm  | 7       | 4                |          |
+| LB mem, reg, mem  | 7       | 5                |          |
+| CMP reg, reg      | 8       | 6                |          |
+| CMP reg, imm      | 8       | 7                |          |
+| CMP imm, reg      | 8       | 7 (swapped)      |          |
+| CMP imm, imm      | 8       | 12               |          |
+| CMP reg, mem      | 8       | 8                |          |
+| CMP mem, reg      | 8       | 9                |          |
+| CMP mem, mem      | 8       | 11               |          |
+| CMP imm, mem      | 8       | 10 (swapped)     |          |
+| CMP mem, imm      | 8       | 10               |          |
+| BNEG reg, reg     | 9      | 6                | 1        |
+| BNEG reg, imm     | 9      | 7                | 1        |
+| BNEG imm, reg     | 9      | 7 (swapped)      | 1        |
+| BNEG imm, imm     | 9      | 12               | 1        |
+| BNEG reg, mem     | 9      | 8                | 1        |
+| BNEG mem, reg     | 9      | 9                | 1        |
+| BNEG mem, mem     | 9      | 11               | 1        |
+| BNEG imm, mem     | 9      | 10 (swapped)     | 1        |
+| BNEG mem, imm     | 9      | 10               | 1        |
+| BZO reg, reg      | 9      | 6                | 2        |
+| BZO reg, imm      | 9      | 7                | 2        |
+| BZO imm, reg      | 9      | 7 (swapped)      | 2        |
+| BZO imm, imm      | 9      | 12               | 2        |
+| BZO reg, mem      | 9      | 8                | 2        |
+| BZO mem, reg      | 9      | 9                | 2        |
+| BZO mem, mem      | 9      | 11               | 2        |
+| BZO imm, mem      | 9      | 10 (swapped)     | 2        |
+| BZO mem, imm      | 9      | 10               | 2        |
+| BLE reg, reg      | 9      | 6                | 3        |
+| BLE reg, imm      | 9      | 7                | 3        |
+| BLE imm, reg      | 9      | 7 (swapped)      | 3        |
+| BLE imm, imm      | 9      | 12               | 3        |
+| BLE reg, mem      | 9      | 8                | 3        |
+| BLE mem, reg      | 9      | 9                | 3        |
+| BLE mem, mem      | 9      | 11               | 3        |
+| BLE imm, mem      | 9      | 10 (swapped)     | 3        |
+| BLE mem, imm      | 9      | 10               | 3        |
+| BOF reg, reg      | 9      | 6                | 4        |
+| BOF reg, imm      | 9      | 7                | 4        |
+| BOF imm, reg      | 9      | 7 (swapped)      | 4        |
+| BOF imm, imm      | 9      | 12               | 4        |
+| BOF reg, mem      | 9      | 8                | 4        |
+| BOF mem, reg      | 9      | 9                | 4        |
+| BOF mem, mem      | 9      | 11               | 4        |
+| BOF imm, mem      | 9      | 10 (swapped)     | 4        |
+| BOF mem, imm      | 9      | 10               | 4        |
+| BCA reg, reg      | 9      | 6                | 5        |
+| BCA reg, imm      | 9      | 7                | 5        |
+| BCA imm, reg      | 9      | 7 (swapped)      | 5        |
+| BCA imm, imm      | 9      | 12               | 5        |
+| BCA reg, mem      | 9      | 8                | 5        |
+| BCA mem, reg      | 9      | 9                | 5        |
+| BCA mem, mem      | 9      | 11               | 5        |
+| BCA imm, mem      | 9      | 10 (swapped)     | 5        |
+| BCA mem, imm      | 9      | 10               | 5        |
+| JAL reg, reg      | 10      | 6                |          |
+| JAL reg, imm      | 10      | 7                |          |
+| JAL imm, reg      | 10      | 7 (swapped)      |          |
+| JAL imm, imm      | 10      | 12               |          |
+| JAL reg, mem      | 10      | 8                |          |
+| JAL mem, reg      | 10      | 9                |          |
+| JAL mem, mem      | 10      | 11               |          |
+| JAL imm, mem      | 10      | 10 (swapped)     |          |
+| JAL mem, imm      | 10      | 10               |          |
+| J reg, reg        | 11      | 6                |          |
+| J reg, imm        | 11      | 7                |          |
+| J imm, reg        | 11      | 7 (swapped)      |          |
+| J imm, imm        | 11      | 12               |          |
+| J reg, mem        | 11      | 8                |          |
+| J mem, reg        | 11      | 9                |          |
+| J mem, mem        | 11      | 11               |          |
+| J imm, mem        | 11      | 10 (swapped)     |          |
+| J mem, imm        | 11      | 10               |          |
+| GO reg            | 12      | 12               |          |
+| GO imm            | 12      | 13               |          |
+| GO mem            | 12      | 14               |          |
 
 ### Instruction Encoding
 - [x:y] means the top 4 bits represent x, the lower 4 bits represent y

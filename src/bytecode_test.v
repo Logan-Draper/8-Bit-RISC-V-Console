@@ -1,5 +1,18 @@
 module bytecode
 
+import arrays
+
+fn test_get_extra() {
+	alu_opcode := Opcode.alu
+	$for alu_op in Alu.values {
+		assert alu_opcode.get_extra(u8(alu_op.value))? == Extra(alu_op.value)
+	}
+	b_opcode := Opcode.b
+	$for b_op in Branch.values {
+		assert b_opcode.get_extra(u8(b_op.value))? == Extra(b_op.value)
+	}
+}
+
 fn test_decode_opcode() {
 	$for op in Opcode.values {
 		opcode, _ := decode_op(u8(op.value) << 4)!
@@ -148,10 +161,29 @@ fn test_decode_operands() {
 	}
 }
 
-fn test_decode() {
-	program := [u8(0)]
-	pc := u16(0)
+fn test_decode_nop() {
+	program := Instruction{}
 
-	instruction := decode(program, pc)!
+	instruction := decode(program.encode_instruction()!, 0)!
 	assert instruction.opcode == Opcode.nop
+}
+
+fn test_decode_alu() {
+	program := Instruction{
+		opcode:   .alu
+		encoding: .rrr
+		extra:    ?Extra(Alu.add)
+		op1:      Operand(Register_Ref{
+			reg: .x
+		})
+		op2:      ?Operand(Register_Ref{
+			reg: .y
+		})
+		op3:      ?Operand(Register_Ref{
+			reg: .a
+		})
+	}
+
+	instruction := decode(program.encode_instruction()!, 0)!
+	assert instruction == program
 }
