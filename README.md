@@ -5,7 +5,7 @@
 - 4096 Byte stack with push/pop operations
 - Variable Length Instruction Encoding
 - 256 Instructions
-- Dedicated instruction to communicate with peripherials/co-processors
+- Dedicated instruction to communicate with peripherals/co-processors
 ### Register File
 1. A
 2. B
@@ -29,6 +29,14 @@ Branch instruction to check busy status of a peripheral
 Push/Pop instructions to move 1 bytes to/from the stack
 Writing to memory through either the 0 page (1 byte addressing), or any other accessible region (2 byte addressing)
 
+All operands can be either register references or memory locations (where applicable).
+
 ## Peripheral/Co-processor Support
 Graphics co processor that works by writing commands and arguments to a specific region of memory
 Dedicated instruction to issue the "GO" signal to the peripheral
+
+## Instructions
+| Instruction | Description                               | Operands      |
+|:------------|:------------------------------------------|:--------------|
+| ADD         | Add rs1 and rs2 into rd                   | rd, rs1, rs2  |
+| SUB         | Subtract rs2 from rs1, store result in rd | rd, rs1, rs2  |
