@@ -419,3 +419,20 @@ fn test_instruction_gen_decode() {
 		}
 	}
 }
+
+fn test_fuzz_decode() {
+	for i in 0 .. 100_000 {
+		random_data := rand.bytes(4)!
+		opcode, encoding := decode_op(random_data[0]) or { continue }
+		if !opcode.is_valid_encoding(encoding) {
+			continue
+		}
+
+		instruction, length := decode(random_data, 0) or {
+			assert err == error('Error while decoding operands')
+			continue
+		}
+
+		assert length > 0
+	}
+}
