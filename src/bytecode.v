@@ -1,19 +1,19 @@
 module bytecode
 
 enum Opcode as u8 {
-	nop = 0
-	alu  @[EXTRA]
-	push
-	pop
-	sbz
-	sb
-	lbz
-	lb
-	cmp
-	b  @[EXTRA]
-	jal
-	j
-	_go
+	nop = 0   @[rrr]
+	alu   @[EXTRA; mri; mrm; mrr; rri; rrm; rrr]
+	push  @[i; m; r]
+	pop   @[m; r]
+	sbz   @[ii; mi; mm; mr; ri; rm; rr]
+	sb    @[mri; mrm; mrr; rri; rrm; rrr]
+	lbz   @[mi; mm; mr; ri; rm; rr]
+	lb    @[mri; mrm; mrr; rri; rrm; rrr]
+	cmp   @[ii; mi; mm; mr; ri; rm; rr]
+	b     @[EXTRA; ii; mi; mm; mr; ri; rm; rr]
+	jal   @[ii; mi; mm; mr; ri; rm; rr]
+	j     @[ii; mi; mm; mr; ri; rm; rr]
+	_go   @[i; m; r]
 }
 
 fn (opcode Opcode) get_extra(value u8) ?Extra {
@@ -27,6 +27,15 @@ fn (opcode Opcode) get_extra(value u8) ?Extra {
 		}
 	}
 	return none
+}
+
+fn (opcode Opcode) is_valid_encoding(encoding Encoding) bool {
+	$for op in Opcode.values {
+		if op.value == opcode && encoding.str() !in op.attrs {
+			return false
+		}
+	}
+	return true
 }
 
 enum Encoding as u8 {
@@ -71,7 +80,8 @@ fn (extra Extra) get_value() u8 {
 }
 
 enum Register as u8 {
-	a = 0
+	zero = 0
+	a
 	b
 	x
 	y
@@ -113,6 +123,10 @@ fn decode_op(op u8) !(Opcode, Encoding) {
 	opcode := Opcode.from(op >> 4) or { return error('Unknown opcode ${op >> 4}') }
 	encoding := Encoding.from(op & 0xF) or { return error('Unknown encoding ${op & 0xF}') }
 
+	if !opcode.is_valid_encoding(encoding) {
+		return error('Unsupported encoding ${encoding} for opcode ${opcode}')
+	}
+
 	return opcode, encoding
 }
 
@@ -135,7 +149,7 @@ fn (instruction Instruction) encode_instruction() ![]u8 {
 	return encoding
 }
 
-fn decode_operands(program []u8, offset u16, encoding Encoding) !(Operand, ?Operand, ?Operand) {
+fn decode_operands(program []u8, offset u16, encoding Encoding) !(Operand, ?Operand, ?Operand, u16) {
 	return match encoding {
 		.rrr {
 			Operand(Register_Ref{
@@ -144,7 +158,7 @@ fn decode_operands(program []u8, offset u16, encoding Encoding) !(Operand, ?Oper
 				reg: Register.from(program[offset] & 0xF)!
 			}), ?Operand(Register_Ref{
 				reg: Register.from(program[offset + 1] >> 4)!
-			})
+			}), 2
 		}
 		.rri {
 			Operand(Register_Ref{
@@ -153,7 +167,7 @@ fn decode_operands(program []u8, offset u16, encoding Encoding) !(Operand, ?Oper
 				reg: Register.from(program[offset] & 0xF)!
 			}), ?Operand(Immediate{
 				val: program[offset + 1]
-			})
+			}), 2
 		}
 		.rrm {
 			Operand(Register_Ref{
@@ -162,7 +176,7 @@ fn decode_operands(program []u8, offset u16, encoding Encoding) !(Operand, ?Oper
 				reg: Register.from(program[offset] & 0xF)!
 			}), ?Operand(Memory{
 				reg: Register.from(program[offset + 1] >> 4)!
-			})
+			}), 2
 		}
 		.mrr {
 			Operand(Memory{
@@ -171,7 +185,7 @@ fn decode_operands(program []u8, offset u16, encoding Encoding) !(Operand, ?Oper
 				reg: Register.from(program[offset] & 0xF)!
 			}), ?Operand(Register_Ref{
 				reg: Register.from(program[offset + 1] >> 4)!
-			})
+			}), 2
 		}
 		.mri {
 			Operand(Memory{
@@ -180,7 +194,7 @@ fn decode_operands(program []u8, offset u16, encoding Encoding) !(Operand, ?Oper
 				reg: Register.from(program[offset] & 0xF)!
 			}), ?Operand(Immediate{
 				val: program[offset + 1]
-			})
+			}), 2
 		}
 		.mrm {
 			Operand(Memory{
@@ -189,71 +203,71 @@ fn decode_operands(program []u8, offset u16, encoding Encoding) !(Operand, ?Oper
 				reg: Register.from(program[offset] & 0xF)!
 			}), ?Operand(Memory{
 				reg: Register.from(program[offset + 1] >> 4)!
-			})
+			}), 2
 		}
 		.rr {
 			Operand(Register_Ref{
 				reg: Register.from(program[offset] >> 4)!
 			}), ?Operand(Register_Ref{
 				reg: Register.from(program[offset] & 0xF)!
-			}), ?Operand(none)
+			}), ?Operand(none), 1
 		}
 		.ri {
 			Operand(Register_Ref{
 				reg: Register.from(program[offset] >> 4)!
 			}), ?Operand(Immediate{
 				val: program[offset + 1]
-			}), ?Operand(none)
+			}), ?Operand(none), 2
 		}
 		.rm {
 			Operand(Register_Ref{
 				reg: Register.from(program[offset] >> 4)!
 			}), ?Operand(Memory{
 				reg: Register.from(program[offset] & 0xF)!
-			}), ?Operand(none)
+			}), ?Operand(none), 1
 		}
 		.mr {
 			Operand(Memory{
 				reg: Register.from(program[offset] >> 4)!
 			}), ?Operand(Register_Ref{
 				reg: Register.from(program[offset] & 0xF)!
-			}), ?Operand(none)
+			}), ?Operand(none), 1
 		}
 		.mi {
 			Operand(Memory{
 				reg: Register.from(program[offset] >> 4)!
 			}), ?Operand(Immediate{
 				val: program[offset + 1]
-			}), ?Operand(none)
+			}), ?Operand(none), 2
 		}
 		.mm {
 			Operand(Memory{
 				reg: Register.from(program[offset] >> 4)!
 			}), ?Operand(Memory{
 				reg: Register.from(program[offset] & 0xF)!
-			}), ?Operand(none)
+			}), ?Operand(none), 1
 		}
 		.ii {
 			Operand(Immediate{
 				val: program[offset]
 			}), ?Operand(Immediate{
 				val: program[offset + 1]
-			}), ?Operand(none)
+			}), ?Operand(none), 2
 		}
 		.r {
 			Operand(Register_Ref{
 				reg: Register.from(program[offset] >> 4)!
-			}), ?Operand(none), ?Operand(none)
+			}), ?Operand(none), ?Operand(none), 1
 		}
 		.i {
 			Operand(Immediate{
 				val: program[offset]
-			}), ?Operand(none), ?Operand(none)
+			}), ?Operand(none), ?Operand(none), 1
 		}
 		.m {
 			Operand(Memory{
 				reg: Register.from(program[offset] >> 4)!
-			}), ?Operand(none), ?Operand(none)
+			}), ?Operand(none), ?Operand(none), 1
 		}
 	}
 }
@@ -270,29 +284,37 @@ fn encode_operands(encoding Encoding, op1 Operand, op2 ?Operand, op3 ?Operand) ?
 	}
 }
 
-pub fn decode(program []u8, program_counter u16) !Instruction {
+pub fn decode(program []u8, program_counter u16) !(Instruction, u16) {
 	if program_counter > program.len {
 		return error('End of program reached!')
 	}
 
+	mut instruction_length := u16(1)
+
 	opcode, encoding := decode_op(program[program_counter])!
 
 	if opcode == .nop {
-		return Instruction{}
+		return Instruction{}, instruction_length
 	}
 
 	extra := opcode.get_extra(program[program_counter + 1])
-	op1, op2, op3 := decode_operands(program, program_counter +
+	if extra != none {
+		instruction_length++
+	}
+
+	op1, op2, op3, operands_length := decode_operands(program, program_counter +
 		if extra == none { u16(1) } else { u16(2) }, encoding) or {
 		return error('Error while decoding operands')
 	}
 
+	instruction_length += operands_length
+
 	return Instruction{
 		opcode:   opcode
-		extra:    extra
 		encoding: encoding
+		extra:    extra
 		op1:      op1
 		op2:      op2
 		op3:      op3
-	}
+	}, instruction_length
 }
