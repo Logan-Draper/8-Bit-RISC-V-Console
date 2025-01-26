@@ -9,6 +9,7 @@
 - 256 Instructions
 - Dedicated instruction to communicate with peripherals/co-processors
 ### Register File
+0. Zero
 1. A
 2. B
 3. X
@@ -16,7 +17,6 @@
 5. RA
 6. ??
 7. ??
-8. ??
 
 - Stack pointer is not user accessible
 - Status register is not user accessible
@@ -205,3 +205,15 @@ All operands can be either register references or memory locations (where applic
 - `r` is a register reference, which uses the value in the register directly
 - `m` is a register reference, which uses the value in the register as a zero page offset
 - `i` is an 8-bit immediate
+
+### Example Program
+
+```
+start:
+  ADD x, x, $1
+  PUSH x
+  SBZ x, $0
+  ADD y, y, 12
+  CMP x, y
+  BLT $0, $0
+```
