@@ -1,6 +1,6 @@
 module bytecode
 
-enum Opcode as u8 {
+pub enum Opcode as u8 {
 	nop = 0   @[rrr]
 	alu   @[EXTRA; mri; mrm; mrr; rri; rrm; rrr]
 	push  @[i; m; r]
@@ -38,7 +38,7 @@ fn (opcode Opcode) is_valid_encoding(encoding Encoding) bool {
 	return true
 }
 
-enum Encoding as u8 {
+pub enum Encoding as u8 {
 	rrr = 0
 	rri
 	rrm
@@ -65,12 +65,12 @@ enum Branch as u8 {
 	bca
 }
 
-enum Alu as u8 {
+pub enum Alu as u8 {
 	add = 1
 	sub
 }
 
-type Extra = Branch | Alu
+pub type Extra = Branch | Alu
 
 fn (extra Extra) get_value() u8 {
 	return match extra {
@@ -79,7 +79,7 @@ fn (extra Extra) get_value() u8 {
 	}
 }
 
-enum Register as u8 {
+pub enum Register as u8 {
 	zero = 0
 	a
 	b
@@ -88,19 +88,22 @@ enum Register as u8 {
 	ra
 }
 
-struct Register_Ref {
+pub struct Register_Ref {
+pub:
 	reg Register
 }
 
-struct Immediate {
+pub struct Immediate {
+pub:
 	val u8
 }
 
-struct Memory {
+pub struct Memory {
+pub:
 	reg Register
 }
 
-type Operand = Register_Ref | Immediate | Memory
+pub type Operand = Register_Ref | Immediate | Memory
 
 fn (operand Operand) get_value() u8 {
 	return match operand {
@@ -110,7 +113,8 @@ fn (operand Operand) get_value() u8 {
 	}
 }
 
-struct Instruction {
+pub struct Instruction {
+pub:
 	opcode   Opcode
 	encoding Encoding
 	extra    ?Extra
@@ -130,7 +134,7 @@ fn decode_op(op u8) !(Opcode, Encoding) {
 	return opcode, encoding
 }
 
-fn (instruction Instruction) encode_instruction() ![]u8 {
+pub fn (instruction Instruction) encode_instruction() ![]u8 {
 	if instruction == Instruction{} {
 		return [u8(0)]
 	}
