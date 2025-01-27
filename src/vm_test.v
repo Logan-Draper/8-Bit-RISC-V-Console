@@ -20,19 +20,25 @@ fn test_vm_add() {
 			})
 		},
 		bytecode.Instruction{
-			opcode:   ._go
-			encoding: .i
-			op1:      bytecode.Operand(bytecode.Immediate{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
 				val: 255
 			})
 		},
 	]
 
 	binary := arrays.flatten(program.map(it.encode_instruction()!))
-	vm_instance := create_vm_with_program(binary)!
-	// mut ram := vm_instance.ram[..]
-	// ram[0] = 42
+	mut vm_instance := create_vm_with_program(binary)!
+	mut ram := vm_instance.ram[..]
+	ram[0] = 42
 
-	// vm_instance.run()!
-	// assert vm_instance.ram[..] == ram
+	vm_instance.run()!
+	assert vm_instance.ram[..] == ram
 }

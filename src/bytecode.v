@@ -13,7 +13,7 @@ pub enum Opcode as u8 {
 	b     @[EXTRA; ii; mi; mm; mr; ri; rm; rr]
 	jal   @[ii; mi; mm; mr; ri; rm; rr]
 	j     @[ii; mi; mm; mr; ri; rm; rr]
-	_go   @[i; m; r]
+	trap  @[mri; mrm; mrr; rri; rrm; rrr]
 }
 
 fn (opcode Opcode) get_extra(value u8) ?Extra {
@@ -105,7 +105,7 @@ pub:
 
 pub type Operand = Register_Ref | Immediate | Memory
 
-fn (operand Operand) get_value() u8 {
+pub fn (operand Operand) get_value() u8 {
 	return match operand {
 		Register_Ref { u8(operand.reg) & 0xF }
 		Immediate { operand.val }

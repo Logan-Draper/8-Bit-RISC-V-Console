@@ -7,6 +7,8 @@ struct VM {
 	zero u8
 mut:
 	pc u16 = 0x1000
+	sp u16
+	sr u16
 	a  u8
 	b  u8
 	x  u8
@@ -26,5 +28,25 @@ fn create_vm_with_program(program []u8) !VM {
 
 	return VM{
 		ram: ram
+	}
+}
+
+fn (mut v VM) run() ! {
+	for {
+		instruction, length := bytecode.decode(v.ram[..], v.pc)!
+
+		match instruction.opcode {
+			.alu {}
+			.trap {
+				if instruction.op3 or { panic('') }.get_value() == 255 {
+					return
+				}
+			}
+			else {
+				panic('oh ni!')
+			}
+		}
+
+		v.pc += length
 	}
 }
