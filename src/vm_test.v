@@ -207,7 +207,7 @@ fn test_vm_load_store_zero_page() {
 			opcode:   .lbz
 			encoding: .rm
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .ra
+				reg: .z
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .y
@@ -242,7 +242,7 @@ fn test_vm_load_store_zero_page() {
 	assert vm_instance.b == 2
 	assert vm_instance.x == 2
 	assert vm_instance.y == 3
-	assert vm_instance.ra == 3
+	assert vm_instance.z == 3
 }
 
 fn test_vm_push_pop() {
@@ -572,4 +572,324 @@ fn test_vm_branch_lt() {
 	vm_instance.run()!
 	assert vm_instance.a == 10
 	assert vm_instance.b == 20
+}
+
+fn test_vm_branch_j() {
+	// J $16, $16
+	// ADD a, zero, 54
+	// ADD b, zero, 55
+	// ADD c, zero, 56
+	// TRAP zero, zero, $255
+	program := [
+		bytecode.Instruction{
+			opcode:   .j
+			encoding: .ii
+			op1:      bytecode.Operand(bytecode.Immediate{
+				val: 16
+			})
+			op2:      ?bytecode.Operand(bytecode.Immediate{
+				val: 15
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .a
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 54
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .b
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 55
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .c
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 56
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+	]
+
+	binary := arrays.flatten(program.map(it.encode_instruction()!))
+	mut vm_instance := create_vm_with_program(binary)!
+	mut ram := vm_instance.ram[..]
+
+	vm_instance.run()!
+	assert vm_instance.a == 0
+	assert vm_instance.b == 0
+	assert vm_instance.c == 0
+}
+
+fn test_vm_branch_jal() {
+	// JAL $16, $16
+	// ADD a, zero, 54
+	// ADD b, zero, 55
+	// ADD c, zero, 56
+	// TRAP zero, zero, $255
+	program := [
+		bytecode.Instruction{
+			opcode:   .jal
+			encoding: .ii
+			op1:      bytecode.Operand(bytecode.Immediate{
+				val: 16
+			})
+			op2:      ?bytecode.Operand(bytecode.Immediate{
+				val: 15
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .a
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 54
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .b
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 55
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .c
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 56
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+	]
+
+	binary := arrays.flatten(program.map(it.encode_instruction()!))
+	mut vm_instance := create_vm_with_program(binary)!
+	mut ram := vm_instance.ram[..]
+
+	vm_instance.run()!
+	assert vm_instance.a == 0
+	assert vm_instance.b == 0
+	assert vm_instance.c == 0
+	assert vm_instance.ra == 0x1003
+}
+
+fn test_vm_branch_jal_ret() {
+	// JAL $16, $18
+	// ADD a, a, 1
+	// ADD b, b, 1
+	// ADD c, c, 1
+	// TRAP zero, zero, $255
+	// ADD a, zero, 54
+	// ADD b, zero, 55
+	// ADD c, zero, 56
+	// RET
+	// TRAP zero, zero, $255
+	program := [
+		bytecode.Instruction{
+			opcode:   .jal
+			encoding: .ii
+			op1:      bytecode.Operand(bytecode.Immediate{
+				val: 16
+			})
+			op2:      ?bytecode.Operand(bytecode.Immediate{
+				val: 18
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .a
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .a
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 1
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .b
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .b
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 1
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .c
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .c
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 1
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .a
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 54
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .b
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 55
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .c
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 56
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .ret
+			encoding: .i
+			op1:      bytecode.Operand(bytecode.Immediate{
+				val: 0
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+	]
+
+	binary := arrays.flatten(program.map(it.encode_instruction()!))
+	mut vm_instance := create_vm_with_program(binary)!
+	mut ram := vm_instance.ram[..]
+
+	vm_instance.run()!
+	assert vm_instance.a == 55
+	assert vm_instance.b == 56
+	assert vm_instance.c == 57
 }

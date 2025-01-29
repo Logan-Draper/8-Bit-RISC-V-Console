@@ -12,16 +12,17 @@
 0. Zero
 1. A
 2. B
-3. X
-4. Y
-5. RA
-6. ??
-7. ??
+3. C
+4. D
+5. X
+6. Y
+7. Z
 
 - Stack pointer is not user accessible
 - Status register is not user accessible
 - Controller register is not user accessible
 - Program Counter is not user accessible
+- Return address is not user accessible
 
 #### Status Register
 The status register holds 8 flags
@@ -46,7 +47,6 @@ All operands can be either register references or memory locations (where applic
 
 ## Peripheral/Co-processor Support
 - Graphics co processor that works by writing commands and arguments to a specific region of memory
-- Dedicated instruction to issue the "GO" signal to the peripheral
 
 ## Instructions
 | Instruction | Description                                                                                       | Operands      |
@@ -68,6 +68,7 @@ All operands can be either register references or memory locations (where applic
 | BCA         | Jump to the 16-bit address `rs1:rs2` if the carry flag is set                                     | rs1, rs2      |
 | JAL         | Stores the address of the next instruction in `ra`, then jumps to the 16-bit address of `rs1:rs2` | rs1, rs2      |
 | J           | Jumps to the 16-bit address formed from `rs1:rs2`                                                 | rs1, rs2      |
+| RET         | Jumps to the 16-bit address previously stored in `ra`                                             |               |
 | TRAP        | Trap call to enter trap handler, trap code is specified in rs3, 255 = halt and catch fire         | rs1, rs2, rs3 |
 
 ### Instruction Op Codes

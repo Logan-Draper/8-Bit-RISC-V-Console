@@ -21,12 +21,15 @@ mut:
 	ram [65536]u8
 	pc  u16 = 0x1000
 	sp  u16
+	ra  u16
 	sr  StatusRegister
 	a   u8
 	b   u8
+	c   u8
+	d   u8
 	x   u8
 	y   u8
-	ra  u8
+	z   u8
 }
 
 fn create_vm_with_program(program []u8) !VM {
@@ -54,9 +57,11 @@ fn (v VM) get_value(source bytecode.Operand) u8 {
 				.zero { 0 }
 				.a { v.a }
 				.b { v.b }
+				.c { v.c }
+				.d { v.d }
 				.x { v.x }
 				.y { v.y }
-				.ra { v.ra }
+				.z { v.z }
 			}
 		}
 		bytecode.Immediate {
@@ -67,9 +72,11 @@ fn (v VM) get_value(source bytecode.Operand) u8 {
 				.zero { v.ram[0] }
 				.a { v.ram[v.a] }
 				.b { v.ram[v.b] }
+				.c { v.ram[v.c] }
+				.d { v.ram[v.d] }
 				.x { v.ram[v.x] }
 				.y { v.ram[v.y] }
-				.ra { v.ram[v.ra] }
+				.z { v.ram[v.z] }
 			}
 		}
 	}
@@ -93,9 +100,11 @@ fn (mut v VM) set_value(destination bytecode.Operand, value bytecode.Operand) ! 
 				.zero {}
 				.a { v.a = byte_value }
 				.b { v.b = byte_value }
+				.c { v.c = byte_value }
+				.d { v.d = byte_value }
 				.x { v.x = byte_value }
 				.y { v.y = byte_value }
-				.ra { v.ra = byte_value }
+				.z { v.z = byte_value }
 			}
 		}
 		bytecode.Immediate {
@@ -108,9 +117,11 @@ fn (mut v VM) set_value(destination bytecode.Operand, value bytecode.Operand) ! 
 				.zero { v.ram[0] = byte_value }
 				.a { v.ram[v.a] = byte_value }
 				.b { v.ram[v.b] = byte_value }
+				.c { v.ram[v.c] = byte_value }
+				.d { v.ram[v.d] = byte_value }
 				.x { v.ram[v.x] = byte_value }
 				.y { v.ram[v.y] = byte_value }
-				.ra { v.ram[v.ra] = byte_value }
+				.z { v.ram[v.z] = byte_value }
 			}
 		}
 	}
@@ -252,12 +263,49 @@ fn (mut v VM) run() ! {
 									v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
 								}
 							}
-							.bzo {}
-							.bof {}
-							.bca {}
+							.bzo {
+								if previous_sr.has(.zero) {
+									v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+								}
+							}
+							.bof {
+								if previous_sr.has(.overflow) {
+									v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+								}
+							}
+							.bca {
+								if previous_sr.has(.carry) {
+									v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+								}
+							}
 						}
 					}
 				}
+			}
+			.j {
+				op2 := instruction.op2 or {
+					return error('Attempting to execute a jump call without op2')
+				}
+
+				length = 0
+
+				v.pc = (u16(v.get_value(instruction.op1)) << 8 | v.get_value(op2))
+			}
+			.jal {
+				op2 := instruction.op2 or {
+					return error('Attempting to execute a jump call without op2')
+				}
+
+				v.ra = v.pc + length
+				length = 0
+
+				v.pc = (u16(v.get_value(instruction.op1)) << 8 | v.get_value(op2))
+			}
+			.ret {
+				println('Executing ret')
+				length = 0
+				v.pc = v.ra
+				println('PC after ret: 0x${v.pc:X}')
 			}
 			.trap {
 				trap_code := Traps.from(v.get_value(instruction.op3 or {
@@ -272,7 +320,7 @@ fn (mut v VM) run() ! {
 				}
 			}
 			else {
-				panic('oh ni!')
+				panic('Unhandled instruction ${instruction.opcode}')
 			}
 		}
 

@@ -1,7 +1,7 @@
 module bytecode
 
 pub enum Opcode as u8 {
-	nop = 0   @[rrr]
+	nop = 0   @[i]
 	alu   @[EXTRA; mri; mrm; mrr; rri; rrm; rrr]
 	push  @[i; m; r]
 	pop   @[m; r]
@@ -13,6 +13,7 @@ pub enum Opcode as u8 {
 	b     @[EXTRA; ii; mi; mm; mr; ri; rm; rr]
 	jal   @[ii; mi; mm; mr; ri; rm; rr]
 	j     @[ii; mi; mm; mr; ri; rm; rr]
+	ret   @[i]
 	trap  @[mri; mrm; mrr; rri; rrm; rrr]
 }
 
@@ -82,9 +83,11 @@ pub enum Register as u8 {
 	zero = 0
 	a
 	b
+	c
+	d
 	x
 	y
-	ra
+	z
 }
 
 pub struct Register_Ref {
@@ -136,6 +139,10 @@ fn decode_op(op u8) !(Opcode, Encoding) {
 pub fn (instruction Instruction) encode_instruction() ![]u8 {
 	if instruction == Instruction{} {
 		return [u8(0)]
+	}
+
+	if !instruction.opcode.is_valid_encoding(instruction.encoding) {
+		return error('Unsupported encoding ${instruction.encoding} for opcode ${instruction.opcode}')
 	}
 
 	mut encoding := []u8{}

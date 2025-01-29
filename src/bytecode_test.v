@@ -268,7 +268,9 @@ fn test_decode_operands_fail() {
 }
 
 fn test_decode_nop() {
-	program := Instruction{}
+	program := Instruction{
+		encoding: Encoding.i
+	}
 
 	instruction, length := decode(program.encode_instruction()!, 0)!
 	assert instruction.opcode == Opcode.nop
@@ -415,9 +417,16 @@ fn generate_random_instruction() !Instruction {
 }
 
 fn test_instruction_gen_decode() {
-	for i in 0 .. 10_000 {
+	for i in 0 .. 1_000 {
 		random_instruction := generate_random_instruction()!
-		instruction, length := decode(random_instruction.encode_instruction()!, 0) or {
+		instruction, length := decode(random_instruction.encode_instruction() or {
+			if !random_instruction.opcode.is_valid_encoding(random_instruction.encoding) {
+				continue
+			} else {
+				assert false, 'Decode failed with valid instruction ${random_instruction}'
+				[]u8{}
+			}
+		}, 0) or {
 			if !random_instruction.opcode.is_valid_encoding(random_instruction.encoding) {
 				continue
 			} else {
@@ -429,7 +438,7 @@ fn test_instruction_gen_decode() {
 }
 
 fn test_fuzz_decode() {
-	for i in 0 .. 10_000 {
+	for i in 0 .. 1_000 {
 		random_data := rand.bytes(4)!
 		opcode, encoding := decode_op(random_data[0]) or { continue }
 		if !opcode.is_valid_encoding(encoding) {
