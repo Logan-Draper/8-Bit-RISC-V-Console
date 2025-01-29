@@ -220,3 +220,24 @@ start:
   CMP x, y
   BLT $0, $0
 ```
+
+# Components of this Repository
+
+## `bytecode.v`
+
+This module defines the base format for any bytecode supported bytecode instruction.
+
+Each instruction is specified in 8 bits, 4 bits are dedicated to the opcode, and 4 bits to the encoding used. This allows us to support 16 instruction and 16 encoding schemes. Additionally, there are 2 instructions which have many internal varients, and therefore require an additional byte to narrow down which specific operation to perform. This strikes a good balance between keeping the instruction set small, while still giving the programmer many options. 
+
+The various encoding schemes are combinations of the 3 possible operand types, register, immediate, or memory reference. 
+
+1. Register refers to one of 16 possible registers
+2. Immediate encodes an 8 bit immediate
+3. Memory reference once again references a register, but its value will be interpreted as a 8 bit offset into the zero page.
+
+The bytecode module is designed to have a simple interface for building on top of. The only method that you need to be concerned with is `encoding_instruction` which returns a byte slice of the instructions encoding. A program can then be built by chaining these byte slices together.
+
+If you attempt to encode an invalid instruction the appropriate error will be returned so that you can either handle it, or simply output the same error to the user.
+
+## `vm.v`
+## `assembler.v`

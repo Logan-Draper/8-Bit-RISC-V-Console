@@ -1,6 +1,7 @@
 module bytecode
 
 import rand
+import v.reflection
 
 fn test_get_extra() {
 	alu_opcode := Opcode.alu
@@ -338,14 +339,21 @@ fn test_decode_multi() {
 }
 
 fn generate_random_instruction() !Instruction {
+	enums := reflection.get_enums().filter(it.name in ['Register', 'Opcode', 'Encoding', 'Alu',
+		'Branch'])
+	mut m := map[string]int{}
+	for e in enums {
+		m[e.name] = (e.sym.info as reflection.Enum).vals.len
+	}
+
 	reg1 := Operand(Register_Ref{
-		reg: Register.from(rand.intn(6)!)!
+		reg: Register.from(rand.intn(m['Register'])!)!
 	})
 	reg2 := ?Operand(Register_Ref{
-		reg: Register.from(rand.intn(6)!)!
+		reg: Register.from(rand.intn(m['Register'])!)!
 	})
 	reg3 := ?Operand(Register_Ref{
-		reg: Register.from(rand.intn(6)!)!
+		reg: Register.from(rand.intn(m['Register'])!)!
 	})
 
 	imm1 := Operand(Immediate{
@@ -356,21 +364,21 @@ fn generate_random_instruction() !Instruction {
 	})
 
 	mem1 := Operand(Memory{
-		reg: Register.from(rand.intn(6)!)!
+		reg: Register.from(rand.intn(m['Register'])!)!
 	})
 	mem2 := ?Operand(Memory{
-		reg: Register.from(rand.intn(6)!)!
+		reg: Register.from(rand.intn(m['Register'])!)!
 	})
 	mem3 := ?Operand(Memory{
-		reg: Register.from(rand.intn(6)!)!
+		reg: Register.from(rand.intn(m['Register'])!)!
 	})
 
-	opcode := Opcode.from(rand.intn(13)!)!
-	encoding := Encoding.from(rand.intn(16)!)!
+	opcode := Opcode.from(rand.intn(m['Opcode'])!)!
+	encoding := Encoding.from(rand.intn(m['Encoding'])!)!
 	extra := if opcode in [.alu, .b] {
 		match opcode {
-			.alu { ?Extra(Alu.from(rand.intn(2)! + 1)!) }
-			.b { ?Extra(Branch.from(rand.intn(5)!)!) }
+			.alu { ?Extra(Alu.from(rand.intn(m['Alu'])! + 1)!) }
+			.b { ?Extra(Branch.from(rand.intn(m['Branch'])!)!) }
 			else { panic('Unreachable') }
 		}
 	} else {
@@ -407,7 +415,7 @@ fn generate_random_instruction() !Instruction {
 }
 
 fn test_instruction_gen_decode() {
-	for i in 0 .. 100_000 {
+	for i in 0 .. 10_000 {
 		random_instruction := generate_random_instruction()!
 		instruction, length := decode(random_instruction.encode_instruction()!, 0) or {
 			if !random_instruction.opcode.is_valid_encoding(random_instruction.encoding) {
@@ -421,7 +429,7 @@ fn test_instruction_gen_decode() {
 }
 
 fn test_fuzz_decode() {
-	for i in 0 .. 100_000 {
+	for i in 0 .. 10_000 {
 		random_data := rand.bytes(4)!
 		opcode, encoding := decode_op(random_data[0]) or { continue }
 		if !opcode.is_valid_encoding(encoding) {

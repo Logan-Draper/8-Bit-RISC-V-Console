@@ -57,10 +57,9 @@ pub enum Encoding as u8 {
 	m
 }
 
-enum Branch as u8 {
+pub enum Branch as u8 {
 	bneg = 0
 	bzo
-	ble
 	bof
 	bca
 }
@@ -72,7 +71,7 @@ pub enum Alu as u8 {
 
 pub type Extra = Branch | Alu
 
-fn (extra Extra) get_value() u8 {
+pub fn (extra Extra) get_value() u8 {
 	return match extra {
 		Branch { u8(extra) }
 		Alu { u8(extra) }
@@ -105,7 +104,7 @@ pub:
 
 pub type Operand = Register_Ref | Immediate | Memory
 
-pub fn (operand Operand) get_value() u8 {
+fn (operand Operand) get_value() u8 {
 	return match operand {
 		Register_Ref { u8(operand.reg) & 0xF }
 		Immediate { operand.val }
