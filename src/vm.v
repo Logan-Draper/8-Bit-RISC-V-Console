@@ -7,7 +7,7 @@ enum Traps as u8 {
 }
 
 @[flag]
-enum StatusRegister {
+pub enum StatusRegister {
 	zero
 	carry
 	overflow
@@ -15,7 +15,7 @@ enum StatusRegister {
 	peripheral
 }
 
-struct VM {
+pub struct VM {
 	zero u8
 pub mut:
 	ram [65536]u8
