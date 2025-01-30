@@ -17,7 +17,7 @@ enum StatusRegister {
 
 struct VM {
 	zero u8
-mut:
+pub mut:
 	ram [65536]u8
 	pc  u16 = 0x1000
 	sp  u16
@@ -32,7 +32,7 @@ mut:
 	z   u8
 }
 
-fn create_vm_with_program(program []u8) !VM {
+pub fn create_vm_with_program(program []u8) !VM {
 	if program.len > (65536 - 4096) {
 		return error('Program too large!')
 	}
@@ -132,198 +132,207 @@ fn (mut v VM) set_memory(destination bytecode.Operand, value bytecode.Operand) {
 	v.ram[offset] = v.get_value(value)
 }
 
-fn (mut v VM) run() ! {
+pub fn (mut v VM) step() !bool {
+	mut done := false
+	previous_sr := v.sr
+	v.sr.clear_all()
+
+	instruction, mut length := bytecode.decode(v.ram[..], v.pc) or {
+		return error('Encoutered error while decoding instruction @ PC=0x${v.pc:X}:${err}')
+	}
+
+	match instruction.opcode {
+		.alu {
+			alu_code := instruction.extra or {
+				return error('Attempting to execute alu call without an alu code')
+			}
+
+			match alu_code {
+				bytecode.Branch {
+					return error('Attempting to execute alu call with a branch extra')
+				}
+				bytecode.Alu {
+					op2 := instruction.op2 or {
+						return error('Attempting to execute an alu call without op2')
+					}
+
+					op3 := instruction.op3 or {
+						return error('Attempting to execute an alu call without op3')
+					}
+
+					match alu_code {
+						.add {
+							v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
+								val: v.get_value(op2) + v.get_value(op3)
+							}))!
+						}
+						.sub {
+							v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{v.get_value(op2) - v.get_value(op3)}))!
+						}
+					}
+				}
+			}
+		}
+		.sbz {
+			op2 := instruction.op2 or {
+				return error('Attempting to execute an sbz call without op2')
+			}
+
+			v.set_memory(op2, instruction.op1)
+		}
+		.sb {
+			value := v.get_value(instruction.op1)
+
+			op2 := instruction.op2 or {
+				return error('Attempting to execute a sb call without op2')
+			}
+
+			op3 := instruction.op3 or {
+				return error('Attempting to execute a sb call without op3')
+			}
+
+			v.ram[(u16(v.get_value(op2)) << 8) | v.get_value(op3)] = value
+		}
+		.lbz {
+			op2 := instruction.op2 or {
+				return error('Attempting to execute an lbz call without op2')
+			}
+
+			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
+				val: v.get_memory(op2)
+			}))!
+		}
+		.lb {
+			op2 := instruction.op2 or {
+				return error('Attempting to execute a lb call without op2')
+			}
+
+			op3 := instruction.op3 or {
+				return error('Attempting to execute a lb call without op3')
+			}
+
+			value := v.ram[(u16(v.get_value(op2)) << 8) | v.get_value(op3)]
+
+			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value }))!
+		}
+		.push {
+			v.ram[256 + v.sp] = v.get_value(instruction.op1)
+			v.sp++
+		}
+		.pop {
+			v.sp--
+			value := v.ram[256 + v.sp]
+			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value }))!
+		}
+		.cmp {
+			op2 := instruction.op2 or {
+				return error('Attempting to execute a cmp call without op2')
+			}
+
+			result := int(v.get_value(instruction.op1)) - int(v.get_value(op2))
+
+			if result < 0 {
+				v.sr.set(.negative)
+			}
+			if result == 0 {
+				v.sr.set(.zero)
+			}
+			if result > max_u8 {
+				v.sr.set(.overflow)
+			}
+		}
+		.b {
+			branch_code := instruction.extra or {
+				return error('Attempting to execute branch call without a branch code')
+			}
+
+			match branch_code {
+				bytecode.Alu {
+					return error('Attempting to execute branch call with alu extra')
+				}
+				bytecode.Branch {
+					op2 := instruction.op2 or {
+						return error('Attempting to execute a branch call without op2')
+					}
+
+					length = 0
+
+					match branch_code {
+						.bneg {
+							if previous_sr.has(.negative) {
+								v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+							}
+						}
+						.bzo {
+							if previous_sr.has(.zero) {
+								v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+							}
+						}
+						.bof {
+							if previous_sr.has(.overflow) {
+								v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+							}
+						}
+						.bca {
+							if previous_sr.has(.carry) {
+								v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+							}
+						}
+					}
+				}
+			}
+		}
+		.j {
+			op2 := instruction.op2 or {
+				return error('Attempting to execute a jump call without op2')
+			}
+
+			length = 0
+
+			v.pc = (u16(v.get_value(instruction.op1)) << 8 | v.get_value(op2))
+		}
+		.jal {
+			op2 := instruction.op2 or {
+				return error('Attempting to execute a jump call without op2')
+			}
+
+			v.ra = v.pc + length
+			length = 0
+
+			v.pc = (u16(v.get_value(instruction.op1)) << 8 | v.get_value(op2))
+		}
+		.ret {
+			length = 0
+			v.pc = v.ra
+		}
+		.trap {
+			trap_code := Traps.from(v.get_value(instruction.op3 or {
+				return error('Attempting to execute trap call without a trap code')
+			}))!
+
+			match trap_code {
+				.halt {
+					v.sr = previous_sr
+					length = 0
+					done = true
+				}
+			}
+		}
+		else {
+			panic('Unhandled instruction ${instruction.opcode}')
+		}
+	}
+
+	v.pc += length
+	return done
+}
+
+pub fn (mut v VM) run() ! {
 	for {
-		previous_sr := v.sr
-		v.sr.clear_all()
+		done := v.step()!
 
-		instruction, mut length := bytecode.decode(v.ram[..], v.pc) or {
-			return error('Encoutered error while decoding instruction @ PC=0x${v.pc:X}:${err}')
+		if done {
+			return
 		}
-
-		match instruction.opcode {
-			.alu {
-				alu_code := instruction.extra or {
-					return error('Attempting to execute alu call without an alu code')
-				}
-
-				match alu_code {
-					bytecode.Branch {
-						return error('Attempting to execute alu call with a branch extra')
-					}
-					bytecode.Alu {
-						op2 := instruction.op2 or {
-							return error('Attempting to execute an alu call without op2')
-						}
-
-						op3 := instruction.op3 or {
-							return error('Attempting to execute an alu call without op3')
-						}
-
-						match alu_code {
-							.add {
-								v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
-									val: v.get_value(op2) + v.get_value(op3)
-								}))!
-							}
-							.sub {
-								v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{v.get_value(op2) - v.get_value(op3)}))!
-							}
-						}
-					}
-				}
-			}
-			.sbz {
-				op2 := instruction.op2 or {
-					return error('Attempting to execute an sbz call without op2')
-				}
-
-				v.set_memory(op2, instruction.op1)
-			}
-			.sb {
-				value := v.get_value(instruction.op1)
-
-				op2 := instruction.op2 or {
-					return error('Attempting to execute a sb call without op2')
-				}
-
-				op3 := instruction.op3 or {
-					return error('Attempting to execute a sb call without op3')
-				}
-
-				v.ram[(u16(v.get_value(op2)) << 8) | v.get_value(op3)] = value
-			}
-			.lbz {
-				op2 := instruction.op2 or {
-					return error('Attempting to execute an lbz call without op2')
-				}
-
-				v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
-					val: v.get_memory(op2)
-				}))!
-			}
-			.lb {
-				op2 := instruction.op2 or {
-					return error('Attempting to execute a lb call without op2')
-				}
-
-				op3 := instruction.op3 or {
-					return error('Attempting to execute a lb call without op3')
-				}
-
-				value := v.ram[(u16(v.get_value(op2)) << 8) | v.get_value(op3)]
-
-				v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value }))!
-			}
-			.push {
-				v.ram[256 + v.sp] = v.get_value(instruction.op1)
-				v.sp++
-			}
-			.pop {
-				v.sp--
-				value := v.ram[256 + v.sp]
-				v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value }))!
-			}
-			.cmp {
-				op2 := instruction.op2 or {
-					return error('Attempting to execute a cmp call without op2')
-				}
-
-				result := int(v.get_value(instruction.op1)) - int(v.get_value(op2))
-
-				if result < 0 {
-					v.sr.set(.negative)
-				}
-				if result == 0 {
-					v.sr.set(.zero)
-				}
-				if result > max_u8 {
-					v.sr.set(.overflow)
-				}
-			}
-			.b {
-				branch_code := instruction.extra or {
-					return error('Attempting to execute branch call without a branch code')
-				}
-
-				match branch_code {
-					bytecode.Alu {
-						return error('Attempting to execute branch call with alu extra')
-					}
-					bytecode.Branch {
-						op2 := instruction.op2 or {
-							return error('Attempting to execute a branch call without op2')
-						}
-
-						length = 0
-
-						match branch_code {
-							.bneg {
-								if previous_sr.has(.negative) {
-									v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
-								}
-							}
-							.bzo {
-								if previous_sr.has(.zero) {
-									v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
-								}
-							}
-							.bof {
-								if previous_sr.has(.overflow) {
-									v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
-								}
-							}
-							.bca {
-								if previous_sr.has(.carry) {
-									v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
-								}
-							}
-						}
-					}
-				}
-			}
-			.j {
-				op2 := instruction.op2 or {
-					return error('Attempting to execute a jump call without op2')
-				}
-
-				length = 0
-
-				v.pc = (u16(v.get_value(instruction.op1)) << 8 | v.get_value(op2))
-			}
-			.jal {
-				op2 := instruction.op2 or {
-					return error('Attempting to execute a jump call without op2')
-				}
-
-				v.ra = v.pc + length
-				length = 0
-
-				v.pc = (u16(v.get_value(instruction.op1)) << 8 | v.get_value(op2))
-			}
-			.ret {
-				println('Executing ret')
-				length = 0
-				v.pc = v.ra
-				println('PC after ret: 0x${v.pc:X}')
-			}
-			.trap {
-				trap_code := Traps.from(v.get_value(instruction.op3 or {
-					return error('Attempting to execute trap call without a trap code')
-				}))!
-
-				match trap_code {
-					.halt {
-						v.sr = previous_sr
-						return
-					}
-				}
-			}
-			else {
-				panic('Unhandled instruction ${instruction.opcode}')
-			}
-		}
-
-		v.pc += length
 	}
 }

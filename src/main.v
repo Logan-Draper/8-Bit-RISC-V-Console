@@ -1,5 +1,7 @@
 module main
 
+import tui_console
+
 fn main() {
-	println('Hello World!')
+	tui_console.run()!
 }

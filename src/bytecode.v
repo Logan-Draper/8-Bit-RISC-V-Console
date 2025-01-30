@@ -328,3 +328,53 @@ pub fn decode(program []u8, program_counter u16) !(Instruction, u16) {
 		op3:      op3
 	}, instruction_length
 }
+
+fn disassemble_operand(o ?Operand) string {
+	op := o or { return '' }
+
+	return match op {
+		Register_Ref {
+			op.reg.str()
+		}
+		Immediate {
+			'\$${op.val}'
+		}
+		Memory {
+			'&' + op.reg.str()
+		}
+	}
+}
+
+// This function isn't critial to the operation of the vm
+// so it's going to do some unsafe casting internally
+pub fn (i Instruction) disassemble() string {
+	op1 := disassemble_operand(i.op1)
+	op2 := disassemble_operand(i.op2)
+	op3 := disassemble_operand(i.op3)
+
+	instruction := match i.opcode {
+		.nop, .push, .pop, .sbz, .sb, .lbz, .lb, .cmp, .jal, .j, .ret, .trap {
+			i.opcode.str()
+		}
+		.alu, .b {
+			extra := i.extra or {
+				panic('Attempting to disassemble ${i.opcode} without an extra byte encoded')
+			}
+
+			match extra {
+				Branch {
+					extra.str()
+				}
+				Alu {
+					extra.str()
+				}
+			}
+		}
+	}.to_upper()
+
+	return match i.encoding {
+		.rrr, .rri, .rrm, .mrr, .mri, .mrm { '${instruction} ${op1}, ${op2}, ${op3}' }
+		.rr, .ri, .rm, .mr, .mi, .mm, .ii { '${instruction} ${op1}, ${op2}' }
+		.r, .i, .m { '${instruction} ${op1}' }
+	}
+}
