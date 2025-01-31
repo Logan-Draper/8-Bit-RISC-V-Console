@@ -68,8 +68,6 @@ fn stack(v vm.VM, rows int) string {
 
 	sp_idx := rel_sp - small_idx
 
-	println(small_idx)
-	println(big_idx)
 	stack_slice := ram[small_idx..big_idx]
 
 	mut stack_str := arrays.map_indexed(stack_slice, fn [sp_idx] (idx int, elem u8) string {
