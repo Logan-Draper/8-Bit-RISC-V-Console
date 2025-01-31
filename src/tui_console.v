@@ -52,20 +52,25 @@ fn status_register(v vm.VM) string {
 }
 
 fn stack(v vm.VM, rows int) string {
-	small_idx := if v.sp - (rows / 2) < 0 {
-		256
+	ram := v.ram[256..4096]
+	rel_sp := int(v.sp) - 256
+
+	small_idx := if rel_sp - (rows / 2) < 0 {
+		0
 	} else {
-		256 + v.sp - (rows / 2)
+		rel_sp - (rows / 2)
 	}
-	big_idx := if v.sp + (rows / 2) > 4096 {
-		4096
+	big_idx := if rel_sp + (rows / 2) >= ram.len {
+		ram.len
 	} else {
-		256 + v.sp + (rows / 2)
+		rel_sp + (rows / 2)
 	}
 
-	sp_idx := 256 + v.sp - small_idx
+	sp_idx := rel_sp - small_idx
 
-	stack_slice := v.ram[small_idx..big_idx]
+	println(small_idx)
+	println(big_idx)
+	stack_slice := ram[small_idx..big_idx]
 
 	mut stack_str := arrays.map_indexed(stack_slice, fn [sp_idx] (idx int, elem u8) string {
 		if idx == sp_idx {
@@ -75,7 +80,7 @@ fn stack(v vm.VM, rows int) string {
 		}
 	})
 
-	if small_idx == 256 {
+	if small_idx == 0 {
 		// Pad beginning
 		for stack_str.len < rows {
 			stack_str.prepend('')
@@ -142,7 +147,7 @@ fn render(v vm.VM, instructions []DebugInstruction) ! {
 
 	x1, y1 = ui.percent_to_coord(0.025, 0.55)
 	x2, y2 = ui.percent_to_coord(0.525, 1)
-	ui.draw_text_box_w_title(x1, y1, x2, y2, zero_page(v), 'Zero Page', ui.TextAlignment.unaligned)!
+	ui.draw_text_box_w_title(x1, y1, x2, y2, zero_page(v), 'Zero Page', ui.TextAlignment.center)!
 
 	x1, y1 = ui.percent_to_coord(0.55, 0.1)
 	x2, y2 = ui.percent_to_coord(0.7, 1)

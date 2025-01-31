@@ -20,7 +20,7 @@ pub struct VM {
 pub mut:
 	ram [65536]u8
 	pc  u16 = 0x1000
-	sp  u16
+	sp  u16 = 0x0100
 	ra  u16
 	sr  StatusRegister
 	a   u8
@@ -216,12 +216,12 @@ pub fn (mut v VM) step() !bool {
 			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value }))!
 		}
 		.push {
-			v.ram[256 + v.sp] = v.get_value(instruction.op1)
+			v.ram[v.sp] = v.get_value(instruction.op1)
 			v.sp++
 		}
 		.pop {
 			v.sp--
-			value := v.ram[256 + v.sp]
+			value := v.ram[v.sp]
 			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value }))!
 		}
 		.cmp {
