@@ -2,6 +2,7 @@
 main
 8_Bit_RISC_V_Console
 fantavm
+src/src
 *.exe
 *.exe~
 *.so
