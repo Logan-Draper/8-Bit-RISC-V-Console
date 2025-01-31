@@ -167,20 +167,20 @@ fn test_decode_operands() {
 
 fn test_encoder_operands() {
 	reg1 := Operand(Register_Ref{
-		reg: Register.x
+		reg: Register.r1
 	})
 	reg2 := Operand(Register_Ref{
-		reg: Register.y
+		reg: Register.r2
 	})
 	reg3 := Operand(Register_Ref{
 		reg: Register.zero
 	})
 
 	mem1 := Operand(Memory{
-		reg: Register.x
+		reg: Register.r1
 	})
 	mem2 := Operand(Memory{
-		reg: Register.y
+		reg: Register.r2
 	})
 
 	imm1 := Operand(Immediate{
@@ -255,15 +255,8 @@ fn test_encoder_operands() {
 	]
 }
 
-fn testlencode_operands_fail() {
+fn test_encode_operands_fail() {
 	encode_operands(.rrr, Immediate{ val: 42 }, ?Operand(none), ?Operand(none)) or { return }
-	assert false, 'Test failed'
-}
-
-fn test_decode_operands_fail() {
-	program := [u8(255), 255]
-
-	decode_operands(program, 0, Encoding.rrr) or { return }
 	assert false, 'Test failed'
 }
 
@@ -283,13 +276,13 @@ fn test_decode() {
 		encoding: .rrr
 		extra:    ?Extra(Alu.add)
 		op1:      Operand(Register_Ref{
-			reg: .x
+			reg: .r1
 		})
 		op2:      ?Operand(Register_Ref{
-			reg: .y
+			reg: .r2
 		})
 		op3:      ?Operand(Register_Ref{
-			reg: .a
+			reg: .r3
 		})
 	}
 
@@ -304,13 +297,13 @@ fn test_decode_multi() {
 		encoding: .rrr
 		extra:    ?Extra(Alu.add)
 		op1:      Operand(Register_Ref{
-			reg: .x
+			reg: .r1
 		})
 		op2:      ?Operand(Register_Ref{
-			reg: .y
+			reg: .r2
 		})
 		op3:      ?Operand(Register_Ref{
-			reg: .a
+			reg: .r3
 		})
 	}
 	instruction2 := Instruction{
@@ -318,10 +311,10 @@ fn test_decode_multi() {
 		encoding: .rri
 		extra:    ?Extra(Alu.add)
 		op1:      Operand(Register_Ref{
-			reg: .a
+			reg: .r1
 		})
 		op2:      ?Operand(Register_Ref{
-			reg: .b
+			reg: .r2
 		})
 		op3:      ?Operand(Immediate{
 			val: 42

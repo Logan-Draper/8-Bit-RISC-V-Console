@@ -23,13 +23,21 @@ pub mut:
 	sp  u16 = 0x0100
 	ra  u16
 	sr  StatusRegister
-	a   u8
-	b   u8
-	c   u8
-	d   u8
-	x   u8
-	y   u8
-	z   u8
+	r1  u8
+	r2  u8
+	r3  u8
+	r4  u8
+	r5  u8
+	r6  u8
+	r7  u8
+	r8  u8
+	r9  u8
+	r10 u8
+	r11 u8
+	r12 u8
+	r13 u8
+	r14 u8
+	r15 u8
 }
 
 pub fn create_vm_with_program(program []u8) !VM {
@@ -55,13 +63,21 @@ fn (v VM) get_value(source bytecode.Operand) u8 {
 		bytecode.Register_Ref {
 			match source.reg {
 				.zero { 0 }
-				.a { v.a }
-				.b { v.b }
-				.c { v.c }
-				.d { v.d }
-				.x { v.x }
-				.y { v.y }
-				.z { v.z }
+				.r1 { v.r1 }
+				.r2 { v.r2 }
+				.r3 { v.r3 }
+				.r4 { v.r4 }
+				.r5 { v.r5 }
+				.r6 { v.r6 }
+				.r7 { v.r7 }
+				.r8 { v.r8 }
+				.r9 { v.r9 }
+				.r10 { v.r10 }
+				.r11 { v.r11 }
+				.r12 { v.r12 }
+				.r13 { v.r13 }
+				.r14 { v.r14 }
+				.r15 { v.r15 }
 			}
 		}
 		bytecode.Immediate {
@@ -70,13 +86,21 @@ fn (v VM) get_value(source bytecode.Operand) u8 {
 		bytecode.Memory {
 			match source.reg {
 				.zero { v.ram[0] }
-				.a { v.ram[v.a] }
-				.b { v.ram[v.b] }
-				.c { v.ram[v.c] }
-				.d { v.ram[v.d] }
-				.x { v.ram[v.x] }
-				.y { v.ram[v.y] }
-				.z { v.ram[v.z] }
+				.r1 { v.ram[v.r1] }
+				.r2 { v.ram[v.r2] }
+				.r3 { v.ram[v.r3] }
+				.r4 { v.ram[v.r4] }
+				.r5 { v.ram[v.r5] }
+				.r6 { v.ram[v.r6] }
+				.r7 { v.ram[v.r7] }
+				.r8 { v.ram[v.r8] }
+				.r9 { v.ram[v.r9] }
+				.r10 { v.ram[v.r10] }
+				.r11 { v.ram[v.r11] }
+				.r12 { v.ram[v.r12] }
+				.r13 { v.ram[v.r13] }
+				.r14 { v.ram[v.r14] }
+				.r15 { v.ram[v.r15] }
 			}
 		}
 	}
@@ -98,13 +122,21 @@ fn (mut v VM) set_value(destination bytecode.Operand, value bytecode.Operand) ! 
 		bytecode.Register_Ref {
 			match destination.reg {
 				.zero {}
-				.a { v.a = byte_value }
-				.b { v.b = byte_value }
-				.c { v.c = byte_value }
-				.d { v.d = byte_value }
-				.x { v.x = byte_value }
-				.y { v.y = byte_value }
-				.z { v.z = byte_value }
+				.r1 { v.r1 = byte_value }
+				.r2 { v.r2 = byte_value }
+				.r3 { v.r3 = byte_value }
+				.r4 { v.r4 = byte_value }
+				.r5 { v.r5 = byte_value }
+				.r6 { v.r6 = byte_value }
+				.r7 { v.r7 = byte_value }
+				.r8 { v.r8 = byte_value }
+				.r9 { v.r9 = byte_value }
+				.r10 { v.r10 = byte_value }
+				.r11 { v.r11 = byte_value }
+				.r12 { v.r12 = byte_value }
+				.r13 { v.r13 = byte_value }
+				.r14 { v.r14 = byte_value }
+				.r15 { v.r15 = byte_value }
 			}
 		}
 		bytecode.Immediate {
@@ -115,13 +147,21 @@ fn (mut v VM) set_value(destination bytecode.Operand, value bytecode.Operand) ! 
 		bytecode.Memory {
 			match destination.reg {
 				.zero { v.ram[0] = byte_value }
-				.a { v.ram[v.a] = byte_value }
-				.b { v.ram[v.b] = byte_value }
-				.c { v.ram[v.c] = byte_value }
-				.d { v.ram[v.d] = byte_value }
-				.x { v.ram[v.x] = byte_value }
-				.y { v.ram[v.y] = byte_value }
-				.z { v.ram[v.z] = byte_value }
+				.r1 { v.ram[v.r1] = byte_value }
+				.r2 { v.ram[v.r2] = byte_value }
+				.r3 { v.ram[v.r3] = byte_value }
+				.r4 { v.ram[v.r4] = byte_value }
+				.r5 { v.ram[v.r5] = byte_value }
+				.r6 { v.ram[v.r6] = byte_value }
+				.r7 { v.ram[v.r7] = byte_value }
+				.r8 { v.ram[v.r8] = byte_value }
+				.r9 { v.ram[v.r9] = byte_value }
+				.r10 { v.ram[v.r10] = byte_value }
+				.r11 { v.ram[v.r11] = byte_value }
+				.r12 { v.ram[v.r12] = byte_value }
+				.r13 { v.ram[v.r13] = byte_value }
+				.r14 { v.ram[v.r14] = byte_value }
+				.r15 { v.ram[v.r15] = byte_value }
 			}
 		}
 	}

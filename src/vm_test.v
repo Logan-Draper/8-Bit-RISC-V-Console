@@ -95,14 +95,14 @@ fn test_vm_sub() {
 
 fn test_vm_load_store_zero_page() {
 	// SBZ $42, $200
-	// LBZ a, $200
-	// ADD b, zero, $2
-	// SBZ b, b
-	// LBZ x, b
-	// ADD y, zero, $3
-	// SBZ y, y
-	// SBZ &y, &y
-	// LBZ ra, &y
+	// LBZ r1, $200
+	// ADD r2, zero, $2
+	// SBZ r2, r2
+	// LBZ r3, r2
+	// ADD r4, zero, $3
+	// SBZ r4, r4
+	// SBZ &r4, &r4
+	// LBZ r5, &r4
 	// TRAP zero, zero, $255
 
 	// First via immediates
@@ -124,7 +124,7 @@ fn test_vm_load_store_zero_page() {
 			opcode:   .lbz
 			encoding: .ri
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Immediate{
 				val: 200
@@ -136,7 +136,7 @@ fn test_vm_load_store_zero_page() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -149,20 +149,20 @@ fn test_vm_load_store_zero_page() {
 			opcode:   .sbz
 			encoding: .rr
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 		},
 		bytecode.Instruction{
 			opcode:   .lbz
 			encoding: .rr
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .x
+				reg: .r3
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 		},
 		// Third
@@ -171,7 +171,7 @@ fn test_vm_load_store_zero_page() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .y
+				reg: .r4
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -187,30 +187,30 @@ fn test_vm_load_store_zero_page() {
 			opcode:   .sbz
 			encoding: .rr
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .y
+				reg: .r4
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .y
+				reg: .r4
 			})
 		},
 		bytecode.Instruction{
 			opcode:   .sbz
 			encoding: .mm
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .y
+				reg: .r4
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .y
+				reg: .r4
 			})
 		},
 		bytecode.Instruction{
 			opcode:   .lbz
 			encoding: .rm
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .z
+				reg: .r5
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .y
+				reg: .r4
 			})
 		},
 		// Program End
@@ -238,19 +238,19 @@ fn test_vm_load_store_zero_page() {
 
 	vm_instance.run()!
 	assert vm_instance.ram[..] == ram[..]
-	assert vm_instance.a == 42
-	assert vm_instance.b == 2
-	assert vm_instance.x == 2
-	assert vm_instance.y == 3
-	assert vm_instance.z == 3
+	assert vm_instance.r1 == 42
+	assert vm_instance.r2 == 2
+	assert vm_instance.r3 == 2
+	assert vm_instance.r4 == 3
+	assert vm_instance.r5 == 3
 }
 
 fn test_vm_push_pop() {
-	// ADD y, zero, 3
+	// ADD r4, zero, 3
 	// PUSH $42
-	// PUSH y
-	// POP b
-	// POP a
+	// PUSH r4
+	// POP r2
+	// POP r1
 	// TRAP zero, zero, $255
 	program := [
 		// Preload 3 into y
@@ -259,7 +259,7 @@ fn test_vm_push_pop() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .y
+				reg: .r4
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -279,21 +279,21 @@ fn test_vm_push_pop() {
 			opcode:   .push
 			encoding: .r
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .y
+				reg: .r4
 			})
 		},
 		bytecode.Instruction{
 			opcode:   .pop
 			encoding: .r
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 		},
 		bytecode.Instruction{
 			opcode:   .pop
 			encoding: .r
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 		},
 		bytecode.Instruction{
@@ -319,14 +319,14 @@ fn test_vm_push_pop() {
 
 	vm_instance.run()!
 	assert vm_instance.ram[..] == ram[..]
-	assert vm_instance.a == 42
-	assert vm_instance.b == 3
+	assert vm_instance.r1 == 42
+	assert vm_instance.r2 == 3
 }
 
 fn test_vm_sb_lb() {
-	// ADD a, zero, $255
-	// SB a, a, $255
-	// LB b, a, $255
+	// ADD r1, zero, $255
+	// SB r1, r1, $255
+	// LB r2, r1, $255
 	// TRAP zero, zero, $255
 	program := [
 		bytecode.Instruction{
@@ -334,7 +334,7 @@ fn test_vm_sb_lb() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -347,10 +347,10 @@ fn test_vm_sb_lb() {
 			opcode:   .sb
 			encoding: .rri
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op3:      ?bytecode.Operand(bytecode.Immediate{
 				val: 255
@@ -360,10 +360,10 @@ fn test_vm_sb_lb() {
 			opcode:   .lb
 			encoding: .rri
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op3:      ?bytecode.Operand(bytecode.Immediate{
 				val: 255
@@ -391,14 +391,14 @@ fn test_vm_sb_lb() {
 
 	vm_instance.run()!
 	assert vm_instance.ram[..] == ram[..]
-	assert vm_instance.a == 255
-	assert vm_instance.b == 255
+	assert vm_instance.r1 == 255
+	assert vm_instance.r2 == 255
 }
 
 fn test_vm_cmp() {
-	// ADD a, zero, $10
-	// ADD b, zero, $20
-	// CMP a, b
+	// ADD r1, zero, $10
+	// ADD r2, zero, $20
+	// CMP r1, r2
 	// TRAP zero, zero, $255
 	program := [
 		bytecode.Instruction{
@@ -406,7 +406,7 @@ fn test_vm_cmp() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -420,7 +420,7 @@ fn test_vm_cmp() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -433,10 +433,10 @@ fn test_vm_cmp() {
 			opcode:   .cmp
 			encoding: .rr
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 		},
 		bytecode.Instruction{
@@ -459,18 +459,18 @@ fn test_vm_cmp() {
 	mut ram := vm_instance.ram[..]
 
 	vm_instance.run()!
-	assert vm_instance.a == 10
-	assert vm_instance.b == 20
+	assert vm_instance.r1 == 10
+	assert vm_instance.r2 == 20
 	assert vm_instance.sr.has(.negative) == true
 }
 
 fn test_vm_branch_lt() {
-	// ADD a, zero, $10
-	// ADD b, zero, $20
-	// CMP a, b
+	// ADD r1, zero, $10
+	// ADD r2, zero, $20
+	// CMP r1, r2
 	// BLT $16, $21
-	// ADD a, zero, $72
-	// ADD b, zero, $73
+	// ADD r1, zero, $72
+	// ADD r2, zero, $73
 	// TRAP zero, zero, $255
 	program := [
 		bytecode.Instruction{
@@ -478,7 +478,7 @@ fn test_vm_branch_lt() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -492,7 +492,7 @@ fn test_vm_branch_lt() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -505,10 +505,10 @@ fn test_vm_branch_lt() {
 			opcode:   .cmp
 			encoding: .rr
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 		},
 		bytecode.Instruction{
@@ -527,7 +527,7 @@ fn test_vm_branch_lt() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -541,7 +541,7 @@ fn test_vm_branch_lt() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -570,15 +570,15 @@ fn test_vm_branch_lt() {
 	mut ram := vm_instance.ram[..]
 
 	vm_instance.run()!
-	assert vm_instance.a == 10
-	assert vm_instance.b == 20
+	assert vm_instance.r1 == 10
+	assert vm_instance.r2 == 20
 }
 
 fn test_vm_branch_j() {
 	// J $16, $16
-	// ADD a, zero, 54
-	// ADD b, zero, 55
-	// ADD c, zero, 56
+	// ADD r1, zero, 54
+	// ADD r2, zero, 55
+	// ADD r3, zero, 56
 	// TRAP zero, zero, $255
 	program := [
 		bytecode.Instruction{
@@ -596,7 +596,7 @@ fn test_vm_branch_j() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -610,7 +610,7 @@ fn test_vm_branch_j() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -624,7 +624,7 @@ fn test_vm_branch_j() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .c
+				reg: .r3
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -653,16 +653,16 @@ fn test_vm_branch_j() {
 	mut ram := vm_instance.ram[..]
 
 	vm_instance.run()!
-	assert vm_instance.a == 0
-	assert vm_instance.b == 0
-	assert vm_instance.c == 0
+	assert vm_instance.r1 == 0
+	assert vm_instance.r2 == 0
+	assert vm_instance.r3 == 0
 }
 
 fn test_vm_branch_jal() {
 	// JAL $16, $16
-	// ADD a, zero, 54
-	// ADD b, zero, 55
-	// ADD c, zero, 56
+	// ADD r1, zero, 54
+	// ADD r2, zero, 55
+	// ADD r3, zero, 56
 	// TRAP zero, zero, $255
 	program := [
 		bytecode.Instruction{
@@ -680,7 +680,7 @@ fn test_vm_branch_jal() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -694,7 +694,7 @@ fn test_vm_branch_jal() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -708,7 +708,7 @@ fn test_vm_branch_jal() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .c
+				reg: .r3
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -737,21 +737,21 @@ fn test_vm_branch_jal() {
 	mut ram := vm_instance.ram[..]
 
 	vm_instance.run()!
-	assert vm_instance.a == 0
-	assert vm_instance.b == 0
-	assert vm_instance.c == 0
+	assert vm_instance.r1 == 0
+	assert vm_instance.r2 == 0
+	assert vm_instance.r3 == 0
 	assert vm_instance.ra == 0x1003
 }
 
 fn test_vm_branch_jal_ret() {
 	// JAL $16, $18
-	// ADD a, a, 1
-	// ADD b, b, 1
-	// ADD c, c, 1
+	// ADD r1, r1, 1
+	// ADD r2, r2, 1
+	// ADD r3, r3, 1
 	// TRAP zero, zero, $255
-	// ADD a, zero, 54
-	// ADD b, zero, 55
-	// ADD c, zero, 56
+	// ADD r1, zero, 54
+	// ADD r2, zero, 55
+	// ADD r3, zero, 56
 	// RET
 	// TRAP zero, zero, $255
 	program := [
@@ -770,10 +770,10 @@ fn test_vm_branch_jal_ret() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op3:      ?bytecode.Operand(bytecode.Immediate{
 				val: 1
@@ -784,10 +784,10 @@ fn test_vm_branch_jal_ret() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op3:      ?bytecode.Operand(bytecode.Immediate{
 				val: 1
@@ -798,10 +798,10 @@ fn test_vm_branch_jal_ret() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .c
+				reg: .r3
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .c
+				reg: .r3
 			})
 			op3:      ?bytecode.Operand(bytecode.Immediate{
 				val: 1
@@ -825,7 +825,7 @@ fn test_vm_branch_jal_ret() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -839,7 +839,7 @@ fn test_vm_branch_jal_ret() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -853,7 +853,7 @@ fn test_vm_branch_jal_ret() {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .c
+				reg: .r3
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -889,7 +889,7 @@ fn test_vm_branch_jal_ret() {
 	mut ram := vm_instance.ram[..]
 
 	vm_instance.run()!
-	assert vm_instance.a == 55
-	assert vm_instance.b == 56
-	assert vm_instance.c == 57
+	assert vm_instance.r1 == 55
+	assert vm_instance.r2 == 56
+	assert vm_instance.r3 == 57
 }

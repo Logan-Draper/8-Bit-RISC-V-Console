@@ -1,7 +1,7 @@
 # 8-Bit-Fantasy-Console
 
 ## Architecture Highlights
-- 8 Registers
+- 16 Registers
 - 256 Byte zero page located at &0000-&00FF
 - 3840 Byte stack with push/pop operations located at &0100-&0FFF
 - Entry point for all programs is at &1000
@@ -9,14 +9,23 @@
 - 256 Instructions
 - Dedicated instruction to communicate with peripherals/co-processors
 ### Register File
-0. Zero
-1. A
-2. B
-3. C
-4. D
-5. X
-6. Y
-7. Z
+0. zero
+1. r1
+2. r2
+3. r3
+4. r4
+5. r5
+6. r6
+7. r7
+8. r8
+9. r9
+10. r10
+11. r11
+12. r12
+13. r13
+14. r14
+15. r15
+
 
 - Stack pointer is not user accessible
 - Status register is not user accessible
@@ -214,11 +223,11 @@ All operands can be either register references or memory locations (where applic
 
 ```
 start:
-  ADD x, x, $1
-  PUSH x
-  SBZ x, $0
-  ADD y, y, 12
-  CMP x, y
+  ADD r1, r1, $1
+  PUSH r1
+  SBZ r1, $0
+  ADD r2, r2, 12
+  CMP r1, r2
   BLT $0, $0
 ```
 

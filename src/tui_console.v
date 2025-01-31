@@ -39,10 +39,14 @@ fn bits16(b u16) string {
 
 fn registers(v vm.VM) string {
 	return ['PC: 0x${v.pc:04X} ${bits16(v.pc)}', 'SP: 0x${v.sp:04X} ${bits16(v.sp)}',
-		'RA: 0x${v.ra:04X} ${bits16(v.ra)}', '', ' A: 0x${v.a:02X}   ${bits(v.a)}',
-		' B: 0x${v.b:02X}   ${bits(v.b)}', ' C: 0x${v.c:02X}   ${bits(v.c)}',
-		' D: 0x${v.d:02X}   ${bits(v.d)}', ' X: 0x${v.x:02X}   ${bits(v.x)}',
-		' Y: 0x${v.y:02X}   ${bits(v.y)}', ' Z: 0x${v.z:02X}   ${bits(v.z)}'].join('\n')
+		'RA: 0x${v.ra:04X} ${bits16(v.ra)}', '', ' r1: 0x${v.r1:02X}   ${bits(v.r1)}',
+		' r2: 0x${v.r2:02X}   ${bits(v.r2)}', ' r3: 0x${v.r3:02X}   ${bits(v.r3)}',
+		' r4: 0x${v.r4:02X}   ${bits(v.r4)}', ' r5: 0x${v.r5:02X}   ${bits(v.r5)}',
+		' r6: 0x${v.r6:02X}   ${bits(v.r6)}', ' r7: 0x${v.r7:02X}   ${bits(v.r7)}',
+		' r8: 0x${v.r8:02X}   ${bits(v.r8)}', ' r9: 0x${v.r9:02X}   ${bits(v.r9)}',
+		' r10: 0x${v.r10:02X}   ${bits(v.r10)}', ' r11: 0x${v.r11:02X}   ${bits(v.r11)}',
+		' r12: 0x${v.r12:02X}   ${bits(v.r12)}', ' r13: 0x${v.r13:02X}   ${bits(v.r13)}',
+		' r14: 0x${v.r14:02X}   ${bits(v.r14)}', ' r15: 0x${v.r15:02X}   ${bits(v.r15)}'].join('\n')
 }
 
 fn status_register(v vm.VM) string {
@@ -179,10 +183,10 @@ pub fn run() ! {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op3:      ?bytecode.Operand(bytecode.Immediate{
 				val: 1
@@ -193,10 +197,10 @@ pub fn run() ! {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op3:      ?bytecode.Operand(bytecode.Immediate{
 				val: 1
@@ -207,10 +211,10 @@ pub fn run() ! {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .c
+				reg: .r3
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .c
+				reg: .r3
 			})
 			op3:      ?bytecode.Operand(bytecode.Immediate{
 				val: 1
@@ -234,7 +238,7 @@ pub fn run() ! {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -248,7 +252,7 @@ pub fn run() ! {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -262,7 +266,7 @@ pub fn run() ! {
 			encoding: .rri
 			extra:    ?bytecode.Extra(bytecode.Alu.add)
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .c
+				reg: .r3
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
 				reg: .zero
@@ -292,10 +296,10 @@ pub fn run() ! {
 			opcode:   .cmp
 			encoding: .rr
 			op1:      bytecode.Operand(bytecode.Register_Ref{
-				reg: .a
+				reg: .r1
 			})
 			op2:      ?bytecode.Operand(bytecode.Register_Ref{
-				reg: .b
+				reg: .r2
 			})
 		},
 		bytecode.Instruction{
