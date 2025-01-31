@@ -290,6 +290,16 @@ pub fn run() ! {
 			})
 		},
 		bytecode.Instruction{
+			opcode:   .cmp
+			encoding: .rr
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .a
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .b
+			})
+		},
+		bytecode.Instruction{
 			opcode:   .ret
 			encoding: .i
 			op1:      bytecode.Operand(bytecode.Immediate{
