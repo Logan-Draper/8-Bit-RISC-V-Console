@@ -23,13 +23,14 @@ fn draw_horizontal_line(x1 int, x2 int, y int) ! {
 	}
 
 	original_cursor_pos := term.get_cursor_position()!
+	defer {
+		term.set_cursor_position(original_cursor_pos)
+	}
 
 	term.set_cursor_position(x: x1, y: y)
 	for i in 0 .. (x2 - x1) + 1 {
 		print('─')
 	}
-
-	term.set_cursor_position(original_cursor_pos)
 }
 
 fn draw_vertical_line(y1 int, y2 int, x int) ! {
@@ -38,6 +39,9 @@ fn draw_vertical_line(y1 int, y2 int, x int) ! {
 	}
 
 	original_cursor_pos := term.get_cursor_position()!
+	defer {
+		term.set_cursor_position(original_cursor_pos)
+	}
 
 	term.set_cursor_position(y: y1, x: x)
 	for _ in 0 .. (y2 - y1) + 1 {
@@ -45,13 +49,14 @@ fn draw_vertical_line(y1 int, y2 int, x int) ! {
 		term.cursor_down(1)
 		term.cursor_back(1)
 	}
-
-	term.set_cursor_position(original_cursor_pos)
 }
 
 // Coords must be top left, bottom right, cannot be inverted or will fail
 pub fn draw_box(x1 int, y1 int, x2 int, y2 int) ! {
 	original_cursor_pos := term.get_cursor_position()!
+	defer {
+		term.set_cursor_position(original_cursor_pos)
+	}
 
 	width := x2 - x1
 	height := y2 - y1
@@ -84,12 +89,13 @@ pub fn draw_box(x1 int, y1 int, x2 int, y2 int) ! {
 	print('╰')
 	// Left edge
 	draw_vertical_line(y1 + 1, y2 - 1, x1)!
-
-	term.set_cursor_position(original_cursor_pos)
 }
 
 pub fn draw_text(x int, y int, text string) ! {
 	original_cursor_pos := term.get_cursor_position()!
+	defer {
+		term.set_cursor_position(original_cursor_pos)
+	}
 
 	contents := text.split('\n')
 
@@ -97,8 +103,6 @@ pub fn draw_text(x int, y int, text string) ! {
 		term.set_cursor_position(x: x, y: y + i)
 		print(line)
 	}
-
-	term.set_cursor_position(original_cursor_pos)
 }
 
 pub fn draw_text_box(x1 int, y1 int, x2 int, y2 int, text string, alignment TextAlignment) ! {
