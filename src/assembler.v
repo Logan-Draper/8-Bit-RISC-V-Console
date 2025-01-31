@@ -1,13 +1,12 @@
 module assembler
 
-import bytecode
-
 enum TokenType {
 	instruction
 	register
 	memory
 	comma
 	immediate
+	junk
 }
 
 struct Token {
@@ -21,25 +20,24 @@ struct LexString {
 	token     Token
 }
 
-//Find better condition for instruction catch
+// Find better condition for instruction catch
 fn token_type(s string) !Token {
-	if s.bytes().all(it >= 'A'[0] && it <= 'Z'[0])
-	{
+	if s.bytes().all(it >= `A` && it <= `Z`) {
 		return Token{
 			token: .instruction
 			value: s
 		}
-	} else if s[0] == u8('$'[0]) {
+	} else if s[0] == `$` {
 		return Token{
 			token: .immediate
 			value: s
 		}
-	} else if s[0] == u8('&'[0]) {
+	} else if s[0] == `&` && s[1] == `r` && s[2..].is_int() {
 		return Token{
 			token: .memory
 			value: s
 		}
-	} else if (u8(s[0]) == u8('r'[0]) && s[1..].is_int()) || s == 'zero' {
+	} else if (s[0] == `r` && s[1..].is_int()) || s == 'zero' {
 		return Token{
 			token: .register
 			value: s
@@ -50,6 +48,8 @@ fn token_type(s string) !Token {
 			value: s
 		}
 	} else {
-		return error('')
+		return Token{
+			token: .junk
+		}
 	}
 }

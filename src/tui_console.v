@@ -6,7 +6,6 @@ import arrays
 import ui
 import term
 import os
-import time
 
 struct DebugInstruction {
 	location    u16
@@ -135,7 +134,7 @@ fn code(v vm.VM, instructions []DebugInstruction, rows int) string {
 }
 
 fn render(v vm.VM, instructions []DebugInstruction) ! {
-	width, height := term.get_terminal_size()
+	_, height := term.get_terminal_size()
 	term.clear()
 
 	mut x1, mut y1 := ui.percent_to_coord(0.025, 0.1)
@@ -346,7 +345,6 @@ pub fn run() ! {
 
 	for {
 		render(vm_instance, instructions)!
-		current_instruction, _ := bytecode.decode(vm_instance.ram[..], vm_instance.pc)!
 		done := vm_instance.step()!
 
 		_ := os.input('')

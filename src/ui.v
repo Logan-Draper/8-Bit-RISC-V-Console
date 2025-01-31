@@ -28,7 +28,7 @@ fn draw_horizontal_line(x1 int, x2 int, y int) ! {
 	}
 
 	term.set_cursor_position(x: x1, y: y)
-	for i in 0 .. (x2 - x1) + 1 {
+	for _ in 0 .. (x2 - x1) + 1 {
 		print('─')
 	}
 }
