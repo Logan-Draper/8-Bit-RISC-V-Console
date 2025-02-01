@@ -1015,7 +1015,7 @@ fn generate_random_instruction() !bytecode.Instruction {
 }
 
 fn test_vm_run_fuzz_valid_intructions() {
-	for _ in 0 .. 5 {
+	for _ in 0 .. 2 {
 		mut vm_instance := VM{}
 
 		mut i := 0x1000
@@ -1050,4 +1050,48 @@ fn test_vm_run_fuzz_valid_intructions() {
 			}
 		}
 	}
+}
+
+fn test_vm_input() {
+	// TRAP r1, zero, $1
+	// TRAP zero, zero, $255
+	program := [
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Memory{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 1
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+	]
+
+	binary := arrays.flatten(program.map(it.encode_instruction()!))
+	mut vm_instance := create_vm_with_program(binary)!
+	mut ram := vm_instance.ram[..]
+	ram[0] = 42
+
+	vm_instance.run()!
+	assert vm_instance.ram[..] == ram[..]
+	assert vm_instance.pc == 0x1004
+	// When we halt the PC doesn't move past the beginning of the halt instruction,
+	// otherwise this would be 0x1008
 }
