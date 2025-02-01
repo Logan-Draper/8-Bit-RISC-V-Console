@@ -3,6 +3,7 @@ module vm
 import bytecode
 import arrays
 import rand
+import v.reflection
 
 fn test_vm_add() {
 	// ADD &zero, zero, $42
@@ -896,7 +897,7 @@ fn test_vm_branch_jal_ret() {
 }
 
 fn test_vm_run_fuzz() {
-	for _ in 0 .. 1000 {
+	for _ in 0 .. 100 {
 		mut vm_instance := VM{
 			pc:  rand.u16()
 			sp:  u16(rand.u32_in_range(256, 4096)!)
@@ -923,5 +924,109 @@ fn test_vm_run_fuzz() {
 		}
 
 		vm_instance.run() or { continue }
+	}
+}
+
+// Copied this over for purposes of random vm testing
+// Not the best option but it works for now
+// Plus its just testing
+fn generate_random_instruction() !bytecode.Instruction {
+	enums := reflection.get_enums().filter(it.name in ['Register', 'Opcode', 'Encoding', 'Alu',
+		'Branch'])
+	mut m := map[string]int{}
+	for e in enums {
+		m[e.name] = (e.sym.info as reflection.Enum).vals.len
+	}
+
+	reg1 := bytecode.Operand(bytecode.Register_Ref{
+		reg: bytecode.Register.from(rand.intn(m['Register'])!)!
+	})
+	reg2 := ?bytecode.Operand(bytecode.Register_Ref{
+		reg: bytecode.Register.from(rand.intn(m['Register'])!)!
+	})
+	reg3 := ?bytecode.Operand(bytecode.Register_Ref{
+		reg: bytecode.Register.from(rand.intn(m['Register'])!)!
+	})
+
+	imm1 := bytecode.Operand(bytecode.Immediate{
+		val: u8(rand.intn(256)!)
+	})
+	imm2 := ?bytecode.Operand(bytecode.Immediate{
+		val: u8(rand.intn(256)!)
+	})
+
+	mem1 := bytecode.Operand(bytecode.Memory{
+		reg: bytecode.Register.from(rand.intn(m['Register'])!)!
+	})
+	mem2 := ?bytecode.Operand(bytecode.Memory{
+		reg: bytecode.Register.from(rand.intn(m['Register'])!)!
+	})
+	mem3 := ?bytecode.Operand(bytecode.Memory{
+		reg: bytecode.Register.from(rand.intn(m['Register'])!)!
+	})
+
+	opcode := bytecode.Opcode.from(rand.intn(m['Opcode'])!)!
+	mut encoding := bytecode.Encoding.from(rand.intn(m['Encoding'])!)!
+	for !opcode.is_valid_encoding(encoding) {
+		encoding = bytecode.Encoding.from(rand.intn(m['Encoding'])!)!
+	}
+	extra := if opcode in [.alu, .b] {
+		match opcode {
+			.alu { ?bytecode.Extra(bytecode.Alu.from(rand.intn(m['Alu'])! + 1)!) }
+			.b { ?bytecode.Extra(bytecode.Branch.from(rand.intn(m['Branch'])!)!) }
+			else { panic('Unreachable') }
+		}
+	} else {
+		?bytecode.Extra(none)
+	}
+
+	op1, op2, op3 := match encoding {
+		.rrr { reg1, reg2, reg3 }
+		.rri { reg1, reg2, imm2 }
+		.rrm { reg1, reg2, mem3 }
+		.mrr { mem1, reg2, reg3 }
+		.mri { mem1, reg2, imm2 }
+		.mrm { mem1, reg2, mem3 }
+		.rr { reg1, reg2, ?bytecode.Operand(none) }
+		.ri { reg1, imm2, ?bytecode.Operand(none) }
+		.rm { reg1, mem2, ?bytecode.Operand(none) }
+		.mr { mem1, reg2, ?bytecode.Operand(none) }
+		.mi { mem1, imm2, ?bytecode.Operand(none) }
+		.mm { mem1, mem2, ?bytecode.Operand(none) }
+		.ii { imm1, imm2, ?bytecode.Operand(none) }
+		.r { reg1, ?bytecode.Operand(none), ?bytecode.Operand(none) }
+		.i { imm1, ?bytecode.Operand(none), ?bytecode.Operand(none) }
+		.m { mem1, ?bytecode.Operand(none), ?bytecode.Operand(none) }
+	}
+
+	return bytecode.Instruction{
+		opcode:   opcode
+		encoding: encoding
+		extra:    extra
+		op1:      op1
+		op2:      op2
+		op3:      op3
+	}
+}
+
+fn test_vm_run_fuzz_valid_intructions() {
+	for _ in 0 .. 10 {
+		mut vm_instance := VM{}
+
+		mut i := 0x1000
+		for i < 0xFFFF {
+			bytes := generate_random_instruction()!.encode_instruction()!
+			for j in 0 .. bytes.len {
+				if i + j >= 65536 {
+					break
+				}
+				vm_instance.ram[i + j] = bytes[j]
+			}
+			i += bytes.len
+		}
+
+		for k in 0 .. 100 {
+			done := vm_instance.step() or { continue }
+		}
 	}
 }

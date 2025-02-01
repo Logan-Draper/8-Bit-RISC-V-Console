@@ -30,7 +30,7 @@ fn (opcode Opcode) get_extra(value u8) ?Extra {
 	return none
 }
 
-fn (opcode Opcode) is_valid_encoding(encoding Encoding) bool {
+pub fn (opcode Opcode) is_valid_encoding(encoding Encoding) bool {
 	$for op in Opcode.values {
 		if op.value == opcode && encoding.str() !in op.attrs {
 			return false

@@ -205,10 +205,14 @@ pub fn (mut v VM) step() !bool {
 						.add {
 							v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
 								val: v.get_value(op2) + v.get_value(op3)
-							}))!
+							})) or {
+								return error('Failed to set vm value ${instruction.op1} in add')
+							}
 						}
 						.sub {
-							v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{v.get_value(op2) - v.get_value(op3)}))!
+							v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{v.get_value(op2) - v.get_value(op3)})) or {
+								return error('Failed to set vm value ${instruction.op1} in sub')
+							}
 						}
 					}
 				}
@@ -241,7 +245,7 @@ pub fn (mut v VM) step() !bool {
 
 			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
 				val: v.get_memory(op2)
-			}))!
+			})) or { return error('Failed to set vm value ${instruction.op1} in lbz') }
 		}
 		.lb {
 			op2 := instruction.op2 or {
@@ -254,7 +258,9 @@ pub fn (mut v VM) step() !bool {
 
 			value := v.ram[(u16(v.get_value(op2)) << 8) | v.get_value(op3)]
 
-			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value }))!
+			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value })) or {
+				return error('Failed to set vm value ${instruction.op1} in lb')
+			}
 		}
 		.push {
 			v.ram[v.sp] = v.get_value(instruction.op1)
@@ -263,7 +269,9 @@ pub fn (mut v VM) step() !bool {
 		.pop {
 			v.sp--
 			value := v.ram[v.sp]
-			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value }))!
+			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value })) or {
+				return error('Failed to set vm value ${instruction.op1} in pop')
+			}
 		}
 		.cmp {
 			op2 := instruction.op2 or {
@@ -349,7 +357,11 @@ pub fn (mut v VM) step() !bool {
 		.trap {
 			trap_code := Traps.from(v.get_value(instruction.op3 or {
 				return error('Attempting to execute trap call without a trap code')
-			}))!
+			})) or {
+				return error('Attempting to create trap with unsupported code ${v.get_value(instruction.op3 or {
+					bytecode.Operand{}
+				})}')
+			}
 
 			match trap_code {
 				.halt {
