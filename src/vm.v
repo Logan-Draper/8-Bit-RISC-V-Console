@@ -182,6 +182,7 @@ pub fn (mut v VM) step() !bool {
 	}
 
 	match instruction.opcode {
+		.nop {}
 		.alu {
 			alu_code := instruction.extra or {
 				return error('Attempting to execute alu call without an alu code')
@@ -357,9 +358,6 @@ pub fn (mut v VM) step() !bool {
 					done = true
 				}
 			}
-		}
-		else {
-			panic('Unhandled instruction ${instruction.opcode}')
 		}
 	}
 

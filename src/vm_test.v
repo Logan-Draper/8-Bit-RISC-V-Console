@@ -2,6 +2,7 @@ module vm
 
 import bytecode
 import arrays
+import rand
 
 fn test_vm_add() {
 	// ADD &zero, zero, $42
@@ -892,4 +893,35 @@ fn test_vm_branch_jal_ret() {
 	assert vm_instance.r1 == 55
 	assert vm_instance.r2 == 56
 	assert vm_instance.r3 == 57
+}
+
+fn test_vm_run_fuzz() {
+	for _ in 0 .. 1000 {
+		mut vm_instance := VM{
+			pc:  rand.u16()
+			sp:  u16(rand.u32_in_range(256, 4096)!)
+			ra:  rand.u16()
+			r1:  rand.u8()
+			r2:  rand.u8()
+			r3:  rand.u8()
+			r4:  rand.u8()
+			r5:  rand.u8()
+			r6:  rand.u8()
+			r7:  rand.u8()
+			r8:  rand.u8()
+			r9:  rand.u8()
+			r10: rand.u8()
+			r11: rand.u8()
+			r12: rand.u8()
+			r13: rand.u8()
+			r14: rand.u8()
+			r15: rand.u8()
+		}
+
+		for i := 0; i < 65536; i++ {
+			vm_instance.ram[i] = rand.u8()
+		}
+
+		vm_instance.run() or { continue }
+	}
 }
