@@ -35,7 +35,7 @@ fn main() {
 		name:          'simulation runs'
 		abbrev:        'r'
 		description:   'Number of simulation runs to perform'
-		default_value: ['1']
+		default_value: ['10']
 	})
 
 	dst_cmd.add_flag(cli.Flag{
@@ -47,11 +47,12 @@ fn main() {
 	})
 
 	dst_cmd.add_flag(cli.Flag{
-		flag:        .int
-		required:    false
-		name:        'max timesteps'
-		abbrev:      't'
-		description: 'Maximum number of timesteps to allow the VM to run'
+		flag:          .int
+		required:      false
+		name:          'max timesteps'
+		abbrev:        't'
+		description:   'Maximum number of timesteps to allow the VM to run'
+		default_value: ['500']
 	})
 
 	app.add_command(dst_cmd)
