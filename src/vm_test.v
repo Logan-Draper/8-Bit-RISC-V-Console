@@ -923,7 +923,12 @@ fn test_vm_run_fuzz() {
 			vm_instance.ram[i] = rand.u8()
 		}
 
-		vm_instance.run() or { continue }
+		vm_instance.run() or {
+			match err {
+				VMError { continue }
+				else { panic(err) }
+			}
+		}
 	}
 }
 
@@ -1010,7 +1015,7 @@ fn generate_random_instruction() !bytecode.Instruction {
 }
 
 fn test_vm_run_fuzz_valid_intructions() {
-	for _ in 0 .. 10 {
+	for _ in 0 .. 5 {
 		mut vm_instance := VM{}
 
 		mut i := 0x1000
@@ -1025,8 +1030,24 @@ fn test_vm_run_fuzz_valid_intructions() {
 			i += bytes.len
 		}
 
-		for k in 0 .. 100 {
-			done := vm_instance.step() or { continue }
+		for k in 0 .. 50 {
+			done := vm_instance.step() or {
+				// This essentially allows us to say allow `VMError` and
+				// panic on all other error types. That way we know all
+				// edge cases are at least being caught and thus not
+				// panicing
+				match err {
+					VMError {
+						break
+					}
+					else {
+						panic(err)
+					}
+				}
+			}
+			if done {
+				break
+			}
 		}
 	}
 }

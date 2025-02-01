@@ -2,6 +2,15 @@ module vm
 
 import bytecode
 
+struct VMError {
+	Error
+	message string
+}
+
+fn (vm_err VMError) msg() string {
+	return vm_err.message
+}
+
 enum Traps as u8 {
 	halt = 255
 }
@@ -42,7 +51,9 @@ pub mut:
 
 pub fn create_vm_with_program(program []u8) !VM {
 	if program.len > (65536 - 4096) {
-		return error('Program too large!')
+		return VMError{
+			message: 'Program too large!'
+		}
 	}
 
 	mut ram := [65536]u8{}
@@ -140,7 +151,9 @@ fn (mut v VM) set_value(destination bytecode.Operand, value bytecode.Operand) ! 
 			}
 		}
 		bytecode.Immediate {
-			return error('Attempting to set value with destination of an immediate')
+			return VMError{
+				message: 'Attempting to set value with destination of an immediate'
+			}
 			// zero_page_offset := destination.val
 			// v.ram[zero_page_offset] = byte_value
 		}
@@ -178,27 +191,37 @@ pub fn (mut v VM) step() !bool {
 	v.sr.clear_all()
 
 	instruction, mut length := bytecode.decode(v.ram[..], v.pc) or {
-		return error('Encoutered error while decoding instruction @ PC=0x${v.pc:X}:${err}')
+		return VMError{
+			message: 'Encoutered error while decoding instruction @ PC=0x${v.pc:X}:${err}'
+		}
 	}
 
 	match instruction.opcode {
 		.nop {}
 		.alu {
 			alu_code := instruction.extra or {
-				return error('Attempting to execute alu call without an alu code')
+				return VMError{
+					message: 'Attempting to execute alu call without an alu code'
+				}
 			}
 
 			match alu_code {
 				bytecode.Branch {
-					return error('Attempting to execute alu call with a branch extra')
+					return VMError{
+						message: 'Attempting to execute alu call with a branch extra'
+					}
 				}
 				bytecode.Alu {
 					op2 := instruction.op2 or {
-						return error('Attempting to execute an alu call without op2')
+						return VMError{
+							message: 'Attempting to execute an alu call without op2'
+						}
 					}
 
 					op3 := instruction.op3 or {
-						return error('Attempting to execute an alu call without op3')
+						return VMError{
+							message: 'Attempting to execute an alu call without op3'
+						}
 					}
 
 					match alu_code {
@@ -206,12 +229,16 @@ pub fn (mut v VM) step() !bool {
 							v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
 								val: v.get_value(op2) + v.get_value(op3)
 							})) or {
-								return error('Failed to set vm value ${instruction.op1} in add')
+								return VMError{
+									message: 'Failed to set vm value ${instruction.op1} in add'
+								}
 							}
 						}
 						.sub {
 							v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{v.get_value(op2) - v.get_value(op3)})) or {
-								return error('Failed to set vm value ${instruction.op1} in sub')
+								return VMError{
+									message: 'Failed to set vm value ${instruction.op1} in sub'
+								}
 							}
 						}
 					}
@@ -220,7 +247,9 @@ pub fn (mut v VM) step() !bool {
 		}
 		.sbz {
 			op2 := instruction.op2 or {
-				return error('Attempting to execute an sbz call without op2')
+				return VMError{
+					message: 'Attempting to execute an sbz call without op2'
+				}
 			}
 
 			v.set_memory(op2, instruction.op1)
@@ -229,37 +258,53 @@ pub fn (mut v VM) step() !bool {
 			value := v.get_value(instruction.op1)
 
 			op2 := instruction.op2 or {
-				return error('Attempting to execute a sb call without op2')
+				return VMError{
+					message: 'Attempting to execute a sb call without op2'
+				}
 			}
 
 			op3 := instruction.op3 or {
-				return error('Attempting to execute a sb call without op3')
+				return VMError{
+					message: 'Attempting to execute a sb call without op3'
+				}
 			}
 
 			v.ram[(u16(v.get_value(op2)) << 8) | v.get_value(op3)] = value
 		}
 		.lbz {
 			op2 := instruction.op2 or {
-				return error('Attempting to execute an lbz call without op2')
+				return VMError{
+					message: 'Attempting to execute an lbz call without op2'
+				}
 			}
 
 			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
 				val: v.get_memory(op2)
-			})) or { return error('Failed to set vm value ${instruction.op1} in lbz') }
+			})) or {
+				return VMError{
+					message: 'Failed to set vm value ${instruction.op1} in lbz'
+				}
+			}
 		}
 		.lb {
 			op2 := instruction.op2 or {
-				return error('Attempting to execute a lb call without op2')
+				return VMError{
+					message: 'Attempting to execute a lb call without op2'
+				}
 			}
 
 			op3 := instruction.op3 or {
-				return error('Attempting to execute a lb call without op3')
+				return VMError{
+					message: 'Attempting to execute a lb call without op3'
+				}
 			}
 
 			value := v.ram[(u16(v.get_value(op2)) << 8) | v.get_value(op3)]
 
 			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value })) or {
-				return error('Failed to set vm value ${instruction.op1} in lb')
+				return VMError{
+					message: 'Failed to set vm value ${instruction.op1} in lb'
+				}
 			}
 		}
 		.push {
@@ -270,12 +315,16 @@ pub fn (mut v VM) step() !bool {
 			v.sp--
 			value := v.ram[v.sp]
 			v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: value })) or {
-				return error('Failed to set vm value ${instruction.op1} in pop')
+				return VMError{
+					message: 'Failed to set vm value ${instruction.op1} in pop'
+				}
 			}
 		}
 		.cmp {
 			op2 := instruction.op2 or {
-				return error('Attempting to execute a cmp call without op2')
+				return VMError{
+					message: 'Attempting to execute a cmp call without op2'
+				}
 			}
 
 			result := int(v.get_value(instruction.op1)) - int(v.get_value(op2))
@@ -292,16 +341,22 @@ pub fn (mut v VM) step() !bool {
 		}
 		.b {
 			branch_code := instruction.extra or {
-				return error('Attempting to execute branch call without a branch code')
+				return VMError{
+					message: 'Attempting to execute branch call without a branch code'
+				}
 			}
 
 			match branch_code {
 				bytecode.Alu {
-					return error('Attempting to execute branch call with alu extra')
+					return VMError{
+						message: 'Attempting to execute branch call with alu extra'
+					}
 				}
 				bytecode.Branch {
 					op2 := instruction.op2 or {
-						return error('Attempting to execute a branch call without op2')
+						return VMError{
+							message: 'Attempting to execute a branch call without op2'
+						}
 					}
 
 					length = 0
@@ -333,7 +388,9 @@ pub fn (mut v VM) step() !bool {
 		}
 		.j {
 			op2 := instruction.op2 or {
-				return error('Attempting to execute a jump call without op2')
+				return VMError{
+					message: 'Attempting to execute a jump call without op2'
+				}
 			}
 
 			length = 0
@@ -342,7 +399,9 @@ pub fn (mut v VM) step() !bool {
 		}
 		.jal {
 			op2 := instruction.op2 or {
-				return error('Attempting to execute a jump call without op2')
+				return VMError{
+					message: 'Attempting to execute a jump call without op2'
+				}
 			}
 
 			v.ra = v.pc + length
@@ -356,11 +415,15 @@ pub fn (mut v VM) step() !bool {
 		}
 		.trap {
 			trap_code := Traps.from(v.get_value(instruction.op3 or {
-				return error('Attempting to execute trap call without a trap code')
+				return VMError{
+					message: 'Attempting to execute trap call without a trap code'
+				}
 			})) or {
-				return error('Attempting to create trap with unsupported code ${v.get_value(instruction.op3 or {
-					bytecode.Operand{}
-				})}')
+				return VMError{
+					message: 'Attempting to create trap with unsupported code ${v.get_value(instruction.op3 or {
+						bytecode.Operand{}
+					})}'
+				}
 			}
 
 			match trap_code {

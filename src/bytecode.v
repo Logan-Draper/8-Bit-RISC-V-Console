@@ -1,5 +1,14 @@
 module bytecode
 
+struct BytecodeError {
+	Error
+	message string
+}
+
+fn (bc_err BytecodeError) msg() string {
+	return bc_err.message
+}
+
 pub enum Opcode as u8 {
 	nop = 0   @[i]
 	alu   @[EXTRA; mri; mrm; mrr; rri; rrm; rrr]
@@ -134,11 +143,21 @@ pub:
 }
 
 fn decode_op(op u8) !(Opcode, Encoding) {
-	opcode := Opcode.from(op >> 4) or { return error('Unknown opcode ${op >> 4}') }
-	encoding := Encoding.from(op & 0xF) or { return error('Unknown encoding ${op & 0xF}') }
+	opcode := Opcode.from(op >> 4) or {
+		return BytecodeError{
+			message: 'Unknown opcode ${op >> 4}'
+		}
+	}
+	encoding := Encoding.from(op & 0xF) or {
+		return BytecodeError{
+			message: 'Unknown encoding ${op & 0xF}'
+		}
+	}
 
 	if !opcode.is_valid_encoding(encoding) {
-		return error('Unsupported encoding ${encoding} for opcode ${opcode}')
+		return BytecodeError{
+			message: 'Unsupported encoding ${encoding} for opcode ${opcode}'
+		}
 	}
 
 	return opcode, encoding
@@ -150,7 +169,9 @@ pub fn (instruction Instruction) encode_instruction() ![]u8 {
 	}
 
 	if !instruction.opcode.is_valid_encoding(instruction.encoding) {
-		return error('Unsupported encoding ${instruction.encoding} for opcode ${instruction.opcode}')
+		return BytecodeError{
+			message: 'Unsupported encoding ${instruction.encoding} for opcode ${instruction.opcode}'
+		}
 	}
 
 	mut encoding := []u8{}
@@ -162,7 +183,9 @@ pub fn (instruction Instruction) encode_instruction() ![]u8 {
 	}
 
 	encoding << encode_operands(instruction.encoding, instruction.op1, instruction.op2,
-		instruction.op3) or { return error('Unable to encode operands') }
+		instruction.op3) or { return BytecodeError{
+		message: 'Unable to encode operands'
+	} }
 
 	return encoding
 }
@@ -304,7 +327,9 @@ fn encode_operands(encoding Encoding, op1 Operand, op2 ?Operand, op3 ?Operand) ?
 
 pub fn decode(program []u8, program_counter u16) !(Instruction, u16) {
 	if program_counter > program.len {
-		return error('End of program reached!')
+		return BytecodeError{
+			message: 'End of program reached!'
+		}
 	}
 
 	mut instruction_length := u16(1)
@@ -322,7 +347,9 @@ pub fn decode(program []u8, program_counter u16) !(Instruction, u16) {
 
 	op1, op2, op3, operands_length := decode_operands(program, program_counter +
 		if extra == none { u16(1) } else { u16(2) }, encoding) or {
-		return error('Error while decoding operands')
+		return BytecodeError{
+			message: 'Error while decoding operands'
+		}
 	}
 
 	instruction_length += operands_length
@@ -355,7 +382,7 @@ fn disassemble_operand(o ?Operand) string {
 
 // This function isn't critial to the operation of the vm
 // so it's going to do some unsafe casting internally
-pub fn (i Instruction) disassemble() string {
+pub fn (i Instruction) disassemble() !string {
 	op1 := disassemble_operand(i.op1)
 	op2 := disassemble_operand(i.op2)
 	op3 := disassemble_operand(i.op3)
@@ -366,7 +393,9 @@ pub fn (i Instruction) disassemble() string {
 		}
 		.alu, .b {
 			extra := i.extra or {
-				panic('Attempting to disassemble ${i.opcode} without an extra byte encoded')
+				return BytecodeError{
+					message: 'Attempting to disassemble ${i.opcode} without an extra byte encoded'
+				}
 			}
 
 			match extra {

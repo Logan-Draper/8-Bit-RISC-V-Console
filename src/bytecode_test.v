@@ -42,8 +42,17 @@ fn test_decode_op_fail() {
 
 		// Loop through all invalid encodings for a opcode
 		for enc in invalid_encodings {
-			opcode, encoding := decode_op((u8(op.value) << 4) | u8(enc)) or { continue }
-			assert true == false, 'Should not get here because of the continue'
+			opcode, encoding := decode_op((u8(op.value) << 4) | u8(enc)) or {
+				match err {
+					BytecodeError {
+						continue
+					}
+					else {
+						assert false, '${err}'
+						panic(err)
+					}
+				}
+			}
 		}
 	}
 }
@@ -256,6 +265,7 @@ fn test_encoder_operands() {
 }
 
 fn test_encode_operands_fail() {
+	// This function returns ? not ! so we don't pattern match the error type
 	encode_operands(.rrr, Immediate{ val: 42 }, ?Operand(none), ?Operand(none)) or { return }
 	assert false, 'Test failed'
 }
@@ -433,14 +443,17 @@ fn test_instruction_gen_decode() {
 fn test_fuzz_decode() {
 	for i in 0 .. 1_000 {
 		random_data := rand.bytes(4)!
-		opcode, encoding := decode_op(random_data[0]) or { continue }
-		if !opcode.is_valid_encoding(encoding) {
-			continue
-		}
 
 		instruction, length := decode(random_data, 0) or {
-			assert err == error('Error while decoding operands')
-			continue
+			match err {
+				BytecodeError {
+					continue
+				}
+				else {
+					assert false, '${err}'
+					panic(err)
+				}
+			}
 		}
 
 		assert length > 0

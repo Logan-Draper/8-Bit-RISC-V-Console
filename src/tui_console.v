@@ -118,9 +118,9 @@ fn code(v vm.VM, instructions []DebugInstruction, rows int) string {
 
 	mut program_str := arrays.map_indexed(program_slice, fn [pc_idx] (idx int, elem DebugInstruction) string {
 		if idx == pc_idx {
-			return '> 0x${elem.location:04X}: ${elem.instruction.disassemble()}'
+			return '> 0x${elem.location:04X}: ${elem.instruction.disassemble() or { panic(err) }}'
 		} else {
-			return '  0x${elem.location:04X}: ${elem.instruction.disassemble()}'
+			return '  0x${elem.location:04X}: ${elem.instruction.disassemble() or { panic(err) }}'
 		}
 	})
 

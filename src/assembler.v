@@ -21,7 +21,7 @@ struct LexString {
 }
 
 // Find better condition for instruction catch
-fn token_type(s string) !Token {
+fn token_type(s string) Token {
 	if s.bytes().all(it >= `A` && it <= `Z`) {
 		return Token{
 			token: .instruction
