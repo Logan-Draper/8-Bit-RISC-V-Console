@@ -3,20 +3,26 @@ module tui_console
 import bytecode
 import vm
 import arrays
-import ui
-import term
-import os
+import term.ui as tui
+
+struct App {
+mut:
+	tui          &tui.Context = unsafe { nil }
+	v            vm.VM
+	instructions []DebugInstruction
+	changed      bool = true
+}
 
 struct DebugInstruction {
 	location    u16
 	instruction bytecode.Instruction
 }
 
-fn zero_page(v vm.VM) string {
+fn zero_page(v vm.VM) []string {
 	return arrays.map_indexed(arrays.chunk(v.ram[0..256], 16).map(it.map('${it:02X}').join(' ')),
 		fn (idx int, elem string) string {
 		return '0x${idx * 16:02X}: ' + elem
-	}).join('\n')
+	})
 }
 
 fn bits(b u8) string {
@@ -37,7 +43,7 @@ fn bits16(b u16) string {
 	return str
 }
 
-fn registers(v vm.VM) string {
+fn registers(v vm.VM) []string {
 	return ['PC: 0x${v.pc:04X} ${bits16(v.pc)}', 'SP: 0x${v.sp:04X} ${bits16(v.sp)}',
 		'RA: 0x${v.ra:04X} ${bits16(v.ra)}', '', ' r1: 0x${v.r1:02X}   ${bits(v.r1)}',
 		' r2: 0x${v.r2:02X}   ${bits(v.r2)}', ' r3: 0x${v.r3:02X}   ${bits(v.r3)}',
@@ -46,15 +52,15 @@ fn registers(v vm.VM) string {
 		' r8: 0x${v.r8:02X}   ${bits(v.r8)}', ' r9: 0x${v.r9:02X}   ${bits(v.r9)}',
 		' r10: 0x${v.r10:02X}   ${bits(v.r10)}', ' r11: 0x${v.r11:02X}   ${bits(v.r11)}',
 		' r12: 0x${v.r12:02X}   ${bits(v.r12)}', ' r13: 0x${v.r13:02X}   ${bits(v.r13)}',
-		' r14: 0x${v.r14:02X}   ${bits(v.r14)}', ' r15: 0x${v.r15:02X}   ${bits(v.r15)}'].join('\n')
+		' r14: 0x${v.r14:02X}   ${bits(v.r14)}', ' r15: 0x${v.r15:02X}   ${bits(v.r15)}']
 }
 
-fn status_register(v vm.VM) string {
+fn status_register(v vm.VM) []string {
 	return ['Z C O N P ? ? ?',
-		'${int(v.sr.has(.zero))} ${int(v.sr.has(.carry))} ${int(v.sr.has(.overflow))} ${int(v.sr.has(.negative))} ${int(v.sr.has(.peripheral))} 0 0 0'].join('\n')
+		'${int(v.sr.has(.zero))} ${int(v.sr.has(.carry))} ${int(v.sr.has(.overflow))} ${int(v.sr.has(.negative))} ${int(v.sr.has(.peripheral))} 0 0 0']
 }
 
-fn stack(v vm.VM, rows int) string {
+fn stack(v vm.VM, rows int) []string {
 	ram := v.ram[256..4096]
 	rel_sp := int(v.sp) - 256
 
@@ -93,10 +99,10 @@ fn stack(v vm.VM, rows int) string {
 		}
 	}
 
-	return stack_str.reverse().join('\n')
+	return stack_str.reverse()
 }
 
-fn code(v vm.VM, instructions []DebugInstruction, rows int) string {
+fn code(v vm.VM, instructions []DebugInstruction, rows int) []string {
 	current_instruction_idx := arrays.index_of_first(instructions, fn [v] (idx int, di DebugInstruction) bool {
 		return di.location == v.pc
 	})
@@ -134,36 +140,67 @@ fn code(v vm.VM, instructions []DebugInstruction, rows int) string {
 		}
 	}
 
-	return program_str.join('\n')
+	return program_str
 }
 
-fn render(v vm.VM, instructions []DebugInstruction) ! {
-	_, height := term.get_terminal_size()
-	term.clear()
+fn render(mut a App, v vm.VM, instructions []DebugInstruction) ! {
+	mut x1, mut y1 := percent_to_coord(a, 0.025, 0.1)
+	mut x2, mut y2 := percent_to_coord(a, 0.525, 0.5)
+	draw_text_box_w_title(mut a, x1, y1, x2, y2, code(v, instructions, y2 - y1 - 2), 'Code',
+		TextAlignment.unaligned)!
 
-	mut x1, mut y1 := ui.percent_to_coord(0.025, 0.1)
-	mut x2, mut y2 := ui.percent_to_coord(0.525, 0.5)
-	ui.draw_text_box_w_title(x1, y1, x2, y2, code(v, instructions, y2 - y1 - 2), 'Code',
-		ui.TextAlignment.unaligned)!
+	x1, y1 = percent_to_coord(a, 0.025, 0.55)
+	x2, y2 = percent_to_coord(a, 0.525, 1)
+	draw_text_box_w_title(mut a, x1, y1, x2, y2, zero_page(v), 'Zero Page', TextAlignment.center)!
 
-	x1, y1 = ui.percent_to_coord(0.025, 0.55)
-	x2, y2 = ui.percent_to_coord(0.525, 1)
-	ui.draw_text_box_w_title(x1, y1, x2, y2, zero_page(v), 'Zero Page', ui.TextAlignment.center)!
+	x1, y1 = percent_to_coord(a, 0.55, 0.1)
+	x2, y2 = percent_to_coord(a, 0.7, 1)
+	draw_text_box_w_title(mut a, x1, y1, x2, y2, stack(v, y2 - y1 - 2), 'Stack', TextAlignment.center)!
 
-	x1, y1 = ui.percent_to_coord(0.55, 0.1)
-	x2, y2 = ui.percent_to_coord(0.7, 1)
-	ui.draw_text_box_w_title(x1, y1, x2, y2, stack(v, y2 - y1 - 2), 'Stack', ui.TextAlignment.center)!
+	x1, y1 = percent_to_coord(a, 0.73, 0.1)
+	x2, y2 = percent_to_coord(a, 0.99, 0.75)
+	draw_text_box_w_title(mut a, x1, y1, x2, y2, registers(v), 'Registers', TextAlignment.unaligned)!
 
-	x1, y1 = ui.percent_to_coord(0.73, 0.1)
-	x2, y2 = ui.percent_to_coord(0.99, 0.75)
-	ui.draw_text_box_w_title(x1, y1, x2, y2, registers(v), 'Registers', ui.TextAlignment.unaligned)!
+	x1, y1 = percent_to_coord(a, 0.73, 0.85)
+	x2, y2 = percent_to_coord(a, 0.99, 1)
+	draw_text_box_w_title(mut a, x1, y1, x2, y2, status_register(v), 'Status Regsiter',
+		TextAlignment.center)!
+}
 
-	x1, y1 = ui.percent_to_coord(0.73, 0.85)
-	x2, y2 = ui.percent_to_coord(0.99, 1)
-	ui.draw_text_box_w_title(x1, y1, x2, y2, status_register(v), 'Status Regsiter', ui.TextAlignment.center)!
+fn event(e &tui.Event, x voidptr) {
+	if e.typ == .key_down {
+		match e.code {
+			.enter {
+				mut a := unsafe { &App(x) }
+				done := a.v.step() or { panic(err) }
+				if done {
+					exit(0)
+				}
+				a.changed = true
+			}
+			.q, .escape {
+				exit(0)
+			}
+			else {
+				return
+			}
+		}
+	}
+}
 
-	term.set_cursor_position(x: 0, y: height)
-	println('')
+fn frame(x voidptr) {
+	mut app := unsafe { &App(x) }
+
+	if app.changed {
+		app.tui.clear()
+
+		render(mut app, app.v, app.instructions) or { panic(err) }
+
+		app.tui.reset()
+		app.tui.flush()
+
+		app.changed = false
+	}
 }
 
 pub fn run() ! {
@@ -325,7 +362,6 @@ pub fn run() ! {
 	]
 
 	binary := arrays.flatten(program.map(it.encode_instruction()!))
-	mut vm_instance := vm.create_vm_with_program(binary)!
 
 	mut instructions := []DebugInstruction{}
 
@@ -341,20 +377,16 @@ pub fn run() ! {
 		i += length
 	}
 
-	// println('\nBEGIN BINARY')
-	// for instruction in instructions {
-	// 	println('0x${instruction.location:X}: ${instruction.instruction.disassemble()}')
-	// }
-	// println('END BINARY\n')
-
-	for {
-		render(vm_instance, instructions)!
-		done := vm_instance.step()!
-
-		_ := os.input('')
-
-		if done {
-			break
-		}
+	mut app := &App{
+		v:            vm.create_vm_with_program(binary)!
+		instructions: instructions
 	}
+	app.tui = tui.init(
+		user_data:   app
+		frame_fn:    frame
+		event_fn:    event
+		hide_cursor: true
+	)
+
+	app.tui.run()!
 }

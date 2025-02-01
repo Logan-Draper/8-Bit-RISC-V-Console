@@ -1,6 +1,5 @@
-module ui
+module tui_console
 
-import term
 import arrays
 
 pub enum TextAlignment {
@@ -8,8 +7,9 @@ pub enum TextAlignment {
 	center
 }
 
-pub fn percent_to_coord(x f64, y f64) (int, int) {
-	width, height := term.get_terminal_size()
+pub fn percent_to_coord(a App, x f64, y f64) (int, int) {
+	width := a.tui.window_width
+	height := a.tui.window_height
 
 	x_ret := int(width * x)
 	y_ret := int(height * y)
@@ -17,47 +17,28 @@ pub fn percent_to_coord(x f64, y f64) (int, int) {
 	return x_ret, y_ret
 }
 
-fn draw_horizontal_line(x1 int, x2 int, y int) ! {
+fn draw_horizontal_line(mut a App, x1 int, x2 int, y int) ! {
 	if x1 >= x2 {
 		return error('Drawing a line with flipped x1 x2, ${x1} >= ${x2}')
 	}
 
-	original_cursor_pos := term.get_cursor_position()!
-	defer {
-		term.set_cursor_position(original_cursor_pos)
-	}
-
-	term.set_cursor_position(x: x1, y: y)
-	for _ in 0 .. (x2 - x1) + 1 {
-		print('─')
+	for pos in x1 .. x2 + 1 {
+		a.tui.draw_text(pos, y, '─')
 	}
 }
 
-fn draw_vertical_line(y1 int, y2 int, x int) ! {
+fn draw_vertical_line(mut a App, y1 int, y2 int, x int) ! {
 	if y1 >= y2 {
 		return error('Drawing a line with flipped y1 y2, ${y1} >= ${y2}')
 	}
 
-	original_cursor_pos := term.get_cursor_position()!
-	defer {
-		term.set_cursor_position(original_cursor_pos)
-	}
-
-	term.set_cursor_position(y: y1, x: x)
-	for _ in 0 .. (y2 - y1) + 1 {
-		print('│')
-		term.cursor_down(1)
-		term.cursor_back(1)
+	for pos in y1 .. y2 + 1 {
+		a.tui.draw_text(x, pos, '│')
 	}
 }
 
 // Coords must be top left, bottom right, cannot be inverted or will fail
-pub fn draw_box(x1 int, y1 int, x2 int, y2 int) ! {
-	original_cursor_pos := term.get_cursor_position()!
-	defer {
-		term.set_cursor_position(original_cursor_pos)
-	}
-
+pub fn draw_box(mut a App, x1 int, y1 int, x2 int, y2 int) ! {
 	width := x2 - x1
 	height := y2 - y1
 
@@ -70,51 +51,39 @@ pub fn draw_box(x1 int, y1 int, x2 int, y2 int) ! {
 	}
 
 	// Top Left
-	term.set_cursor_position(x: x1, y: y1)
-	print('╭')
+	a.tui.draw_text(x1, y1, '╭')
 	// Top edge
-	draw_horizontal_line(x1 + 1, x2 - 1, y1)!
+	draw_horizontal_line(mut a, x1 + 1, x2 - 1, y1)!
 	// Top Right
-	term.set_cursor_position(x: x2, y: y1)
-	print('╮')
+	a.tui.draw_text(x2, y1, '╮')
 	// Right edge
-	draw_vertical_line(y1 + 1, y2 - 1, x2)!
+	draw_vertical_line(mut a, y1 + 1, y2 - 1, x2)!
 	// Bottom Right
-	term.set_cursor_position(x: x2, y: y2)
-	print('╯')
+	a.tui.draw_text(x2, y2, '╯')
 	// Bottom edge
-	draw_horizontal_line(x1 + 1, x2 - 1, y2)!
+	draw_horizontal_line(mut a, x1 + 1, x2 - 1, y2)!
 	// Bottom Left
-	term.set_cursor_position(x: x1, y: y2)
-	print('╰')
+	a.tui.draw_text(x1, y2, '╰')
 	// Left edge
-	draw_vertical_line(y1 + 1, y2 - 1, x1)!
+	draw_vertical_line(mut a, y1 + 1, y2 - 1, x1)!
 }
 
-pub fn draw_text(x int, y int, text string) ! {
-	original_cursor_pos := term.get_cursor_position()!
-	defer {
-		term.set_cursor_position(original_cursor_pos)
-	}
-
-	contents := text.split('\n')
-
-	for i, line in contents {
-		term.set_cursor_position(x: x, y: y + i)
-		print(line)
+pub fn draw_text(mut a App, x int, y int, text []string) ! {
+	for i, line in text {
+		a.tui.draw_text(x, y + i, line)
 	}
 }
 
-pub fn draw_text_box(x1 int, y1 int, x2 int, y2 int, text string, alignment TextAlignment) ! {
-	draw_box(x1, y1, x2, y2)!
+pub fn draw_text_box(mut a App, x1 int, y1 int, x2 int, y2 int, text []string, alignment TextAlignment) ! {
+	draw_box(mut a, x1, y1, x2, y2)!
 
 	match alignment {
 		.unaligned {
-			draw_text(x1 + 1, y1 + 1, text)!
+			draw_text(mut a, x1 + 1, y1 + 1, text)!
 		}
 		.center {
 			// Do we have room to center the text horizontally?
-			max_line_width := arrays.max(text.split('\n').map(it.len))!
+			max_line_width := arrays.max(text.map(it.len))!
 			box_width := x2 - x1 - 2
 
 			new_x := if max_line_width >= box_width {
@@ -126,18 +95,18 @@ pub fn draw_text_box(x1 int, y1 int, x2 int, y2 int, text string, alignment Text
 			// Do we have room to center the text vertically?
 			box_height := y2 - y1 - 2
 
-			new_y := if text.split('\n').len >= box_height {
+			new_y := if text.len >= box_height {
 				y1 + 1
 			} else {
-				y1 + 1 + ((box_height - text.split('\n').len) / 2)
+				y1 + 1 + ((box_height - text.len) / 2)
 			}
 
-			draw_text(new_x, new_y, text)!
+			draw_text(mut a, new_x, new_y, text)!
 		}
 	}
 }
 
-pub fn draw_text_box_w_title(x1 int, y1 int, x2 int, y2 int, text string, title string, alignment TextAlignment) ! {
-	draw_text(x1 + 1, y1 - 1, title)!
-	draw_text_box(x1, y1, x2, y2, text, alignment)!
+pub fn draw_text_box_w_title(mut a App, x1 int, y1 int, x2 int, y2 int, text []string, title string, alignment TextAlignment) ! {
+	draw_text(mut a, x1 + 1, y1 - 1, [title])!
+	draw_text_box(mut a, x1, y1, x2, y2, text, alignment)!
 }

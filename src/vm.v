@@ -1,7 +1,6 @@
 module vm
 
 import bytecode
-import io
 
 struct VMError {
 	Error
@@ -26,9 +25,9 @@ pub enum StatusRegister {
 }
 
 pub struct VM {
-	input  io.Reader
-	output io.Writer
-	zero   u8
+	// input  io.Reader
+	// output io.Writer
+	zero u8
 pub mut:
 	ram [65536]u8
 	pc  u16 = 0x1000
