@@ -15,6 +15,14 @@ pub fn Color.rgb(r u8, g u8, b u8) Color {
 	}
 }
 
+pub fn (c Color) change_brightness(brightness f64) Color {
+	return Color{
+		r: u8(c.r * brightness)
+		g: u8(c.g * brightness)
+		b: u8(c.b * brightness)
+	}
+}
+
 pub const white = Color.rgb(255, 255, 255)
 pub const silver = Color.rgb(192, 192, 192)
 pub const gray = Color.rgb(128, 128, 128)
