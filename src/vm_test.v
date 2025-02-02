@@ -1,9 +1,11 @@
 module vm
 
 import bytecode
+import noblock
 import arrays
 import rand
 import v.reflection
+import strings
 
 fn test_vm_add() {
 	// ADD &zero, zero, $42
@@ -466,11 +468,11 @@ fn test_vm_cmp() {
 	assert vm_instance.sr.has(.negative) == true
 }
 
-fn test_vm_branch_lt() {
+fn test_vm_branch_lt_taken() {
 	// ADD r1, zero, $10
 	// ADD r2, zero, $20
 	// CMP r1, r2
-	// BLT $16, $21
+	// BLT $16, $22
 	// ADD r1, zero, $72
 	// ADD r2, zero, $73
 	// TRAP zero, zero, $255
@@ -574,6 +576,116 @@ fn test_vm_branch_lt() {
 	vm_instance.run()!
 	assert vm_instance.r1 == 10
 	assert vm_instance.r2 == 20
+}
+
+fn test_vm_branch_lt_not_taken() {
+	// ADD r1, zero, $20
+	// ADD r2, zero, $10
+	// CMP r1, r2
+	// BLT $16, $22
+	// ADD r1, zero, $72
+	// ADD r2, zero, $73
+	// TRAP zero, zero, $255
+	program := [
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 20
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r2
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 10
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .cmp
+			encoding: .rr
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .r2
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .b
+			extra:    ?bytecode.Extra(bytecode.Branch.bneg)
+			encoding: .ii
+			op1:      bytecode.Operand(bytecode.Immediate{
+				val: 16
+			})
+			op2:      ?bytecode.Operand(bytecode.Immediate{
+				val: 22
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 72
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r2
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 73
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+	]
+
+	binary := arrays.flatten(program.map(it.encode_instruction()!))
+	mut vm_instance := create_vm_with_program(binary)!
+	mut ram := vm_instance.ram[..]
+
+	vm_instance.run()!
+	assert vm_instance.r1 == 72
+	assert vm_instance.r2 == 73
 }
 
 fn test_vm_branch_j() {
@@ -1052,10 +1164,25 @@ fn test_vm_run_fuzz_valid_intructions() {
 	}
 }
 
-fn test_vm_input() {
+fn test_vm_output() {
+	// ADD r1, zero, $116
 	// TRAP r1, zero, $1
 	// TRAP zero, zero, $255
 	program := [
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: `t`
+			})
+		},
 		bytecode.Instruction{
 			opcode:   .trap
 			encoding: .rri
@@ -1085,13 +1212,380 @@ fn test_vm_input() {
 	]
 
 	binary := arrays.flatten(program.map(it.encode_instruction()!))
-	mut vm_instance := create_vm_with_program(binary)!
-	mut ram := vm_instance.ram[..]
-	ram[0] = 42
+	mut vm_instance := create_vm_with_program_and_streams(binary, noblock.NoblockString{
+		internal_string: ''
+	}, strings.new_builder(10))!
 
 	vm_instance.run()!
-	assert vm_instance.ram[..] == ram[..]
-	assert vm_instance.pc == 0x1004
-	// When we halt the PC doesn't move past the beginning of the halt instruction,
-	// otherwise this would be 0x1008
+	assert vm_instance.r1 == `t`
+
+	match vm_instance.output {
+		strings.Builder {
+			mut sb := vm_instance.output as strings.Builder
+			assert sb.str() == 't'
+		}
+		else {
+			assert false, 'vm output stream is somehow not of type strings.Builder'
+		}
+	}
+}
+
+fn test_vm_output_loop() {
+	// ADD r1, zero, $97
+	// ADD r2, zero, $122
+	// CMP r2, r1
+	// BLT $16, $24
+	// TRAP r1, zero, $1
+	// ADD r1, r1, $1
+	// J $16, $8
+	// TRAP zero, zero, $255
+	program := [
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 97
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r2
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 122
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .cmp
+			encoding: .rr
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r2
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .b
+			encoding: .ii
+			extra:    ?bytecode.Extra(bytecode.Branch.bneg)
+			op1:      bytecode.Operand(bytecode.Immediate{
+				val: 16
+			})
+			op2:      ?bytecode.Operand(bytecode.Immediate{
+				val: 24
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 1
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .alu
+			encoding: .rri
+			extra:    ?bytecode.Extra(bytecode.Alu.add)
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 1
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .j
+			encoding: .ii
+			op1:      bytecode.Operand(bytecode.Immediate{
+				val: 16
+			})
+			op2:      ?bytecode.Operand(bytecode.Immediate{
+				val: 8
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+	]
+
+	binary := arrays.flatten(program.map(it.encode_instruction()!))
+	mut vm_instance := create_vm_with_program_and_streams(binary, noblock.NoblockString{
+		internal_string: ''
+	}, strings.new_builder(26))!
+
+	vm_instance.run()!
+	assert vm_instance.r1 == `z` + 1
+	assert vm_instance.r2 == `z`
+
+	match vm_instance.output {
+		strings.Builder {
+			mut sb := vm_instance.output as strings.Builder
+			assert sb.str() == 'abcdefghijklmnopqrstuvwxyz'
+		}
+		else {
+			assert false, 'vm output stream is somehow not of type strings.Builder'
+		}
+	}
+}
+
+fn test_vm_input() {
+	// Testing with 2 characters available on the input stream but doing 3 reads
+	// the frist 2 succeed, the last returns -1 (EOF/255)
+	// TRAP r1, zero, $2
+	// TRAP &r1, zero, $2
+	// TRAP r2, zero, $2
+	// TRAP zero, zero, $255
+	program := [
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 2
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .mri
+			op1:      bytecode.Operand(bytecode.Memory{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 2
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Memory{
+				reg: .r2
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 2
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+	]
+
+	binary := arrays.flatten(program.map(it.encode_instruction()!))
+	mut vm_instance := create_vm_with_program_and_streams(binary, noblock.NoblockString{
+		internal_string: 'ab'
+	}, strings.new_builder(10))!
+
+	vm_instance.run()!
+	assert vm_instance.r1 == `a`
+	assert vm_instance.ram[`a`] == `b`
+	assert vm_instance.r2 == 255
+}
+
+fn test_vm_input_loop() {
+	// Read all chars off input stream until the first EOF is reported
+	// TRAP r1, zero, $2
+	// CMP r1, $255
+	// BEQ $16, $15
+	// PUSH r1
+	// J $16, $0
+	// TRAP zero, zero, $255
+	program := [
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 2
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .cmp
+			encoding: .ri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .b
+			encoding: .ii
+			extra:    ?bytecode.Extra(bytecode.Branch.bzo)
+			op1:      bytecode.Operand(bytecode.Immediate{
+				val: 16
+			})
+			op2:      ?bytecode.Operand(bytecode.Immediate{
+				val: 15
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .push
+			encoding: .r
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .j
+			encoding: .ii
+			op1:      bytecode.Operand(bytecode.Immediate{
+				val: 16
+			})
+			op2:      ?bytecode.Operand(bytecode.Immediate{
+				val: 0
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+	]
+
+	binary := arrays.flatten(program.map(it.encode_instruction()!))
+	mut vm_instance := create_vm_with_program_and_streams(binary, noblock.NoblockString{
+		internal_string: 'abcdefghijklmnopqrstuvwxyz'
+	}, strings.new_builder(10))!
+
+	vm_instance.run()!
+	assert vm_instance.r1 == 255
+	assert vm_instance.sp == 256 + 26
+	assert vm_instance.ram[256..256 + 26] == 'abcdefghijklmnopqrstuvwxyz'.bytes()
+}
+
+fn test_vm_input_blocking() {
+	// TRAP r1, zero, $2
+	// TRAP &r1, zero, $2
+	// TRAP zero, zero, $255
+	program := [
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 3
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .mri
+			op1:      bytecode.Operand(bytecode.Memory{
+				reg: .r1
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 3
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Memory{
+				reg: .r2
+			})
+			op2:      ?bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      ?bytecode.Operand(bytecode.Immediate{
+				val: 3
+			})
+		},
+		bytecode.Instruction{
+			opcode:   .trap
+			encoding: .rri
+			op1:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op2:      bytecode.Operand(bytecode.Register_Ref{
+				reg: .zero
+			})
+			op3:      bytecode.Operand(bytecode.Immediate{
+				val: 255
+			})
+		},
+	]
+
+	binary := arrays.flatten(program.map(it.encode_instruction()!))
+	mut vm_instance := create_vm_with_program_and_streams(binary, noblock.NoblockString{
+		internal_string: 'ab'
+	}, strings.new_builder(10))!
+
+	vm_instance.run()!
+	assert vm_instance.r1 == `a`
+	assert vm_instance.ram[`a`] == `b`
+	assert vm_instance.r2 == 255
 }

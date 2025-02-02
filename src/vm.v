@@ -1,6 +1,9 @@
 module vm
 
 import bytecode
+import noblock
+import io
+import os
 
 struct VMError {
 	Error
@@ -12,7 +15,10 @@ fn (vm_err VMError) msg() string {
 }
 
 enum Traps as u8 {
-	halt = 255
+	write         = 1
+	read          = 2
+	blocking_read = 3
+	halt          = 255
 }
 
 @[flag]
@@ -25,33 +31,42 @@ pub enum StatusRegister {
 }
 
 pub struct VM {
-	// input  io.Reader
-	// output io.Writer
+pub:
 	zero u8
 pub mut:
-	ram [65536]u8
-	pc  u16 = 0x1000
-	sp  u16 = 0x0100
-	ra  u16
-	sr  StatusRegister
-	r1  u8
-	r2  u8
-	r3  u8
-	r4  u8
-	r5  u8
-	r6  u8
-	r7  u8
-	r8  u8
-	r9  u8
-	r10 u8
-	r11 u8
-	r12 u8
-	r13 u8
-	r14 u8
-	r15 u8
+	input  noblock.NoblockReader = noblock.NoblockFD{
+		file: os.stdin()
+	}
+	output io.Writer = os.stdout()
+	ram    [65536]u8
+	pc     u16 = 0x1000
+	sp     u16 = 0x0100
+	ra     u16
+	sr     StatusRegister
+	r1     u8
+	r2     u8
+	r3     u8
+	r4     u8
+	r5     u8
+	r6     u8
+	r7     u8
+	r8     u8
+	r9     u8
+	r10    u8
+	r11    u8
+	r12    u8
+	r13    u8
+	r14    u8
+	r15    u8
 }
 
 pub fn create_vm_with_program(program []u8) !VM {
+	return create_vm_with_program_and_streams(program, noblock.NoblockFD{
+		file: os.stdin()
+	}, os.stdout())
+}
+
+pub fn create_vm_with_program_and_streams(program []u8, i noblock.NoblockReader, o io.Writer) !VM {
 	if program.len > (65536 - 4096) {
 		return VMError{
 			message: 'Program too large!'
@@ -64,7 +79,9 @@ pub fn create_vm_with_program(program []u8) !VM {
 	}
 
 	return VM{
-		ram: ram
+		input:  i
+		output: o
+		ram:    ram
 	}
 }
 
@@ -361,27 +378,29 @@ pub fn (mut v VM) step() !bool {
 						}
 					}
 
-					length = 0
-
 					match branch_code {
 						.bneg {
 							if previous_sr.has(.negative) {
 								v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+								length = 0
 							}
 						}
 						.bzo {
 							if previous_sr.has(.zero) {
 								v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+								length = 0
 							}
 						}
 						.bof {
 							if previous_sr.has(.overflow) {
 								v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+								length = 0
 							}
 						}
 						.bca {
 							if previous_sr.has(.carry) {
 								v.pc = (u16(v.get_value(instruction.op1)) << 8) | v.get_value(op2)
+								length = 0
 							}
 						}
 					}
@@ -429,12 +448,79 @@ pub fn (mut v VM) step() !bool {
 			}
 
 			match trap_code {
+				.write {
+					v.output.write([v.get_value(instruction.op1)]) or {
+						return VMError{
+							message: 'Failed to write byte ${v.get_value(instruction.op1)} to output stream'
+						}
+					}
+				}
+				.read {
+					if !v.input.data_ready() {
+						v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{ val: 255 })) or {
+							return VMError{
+								message: 'Failed to set value in trap::read when no data is ready'
+							}
+						}
+					} else {
+						mut input_arr := []u8{len: 1}
+						read := v.input.read(mut input_arr) or {
+							return VMError{
+								message: 'Failed to read value from vm input stream in trap::input'
+							}
+						}
+						if read != 1 {
+							v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
+								val: 255
+							})) or {
+								return VMError{
+									message: 'Failed to set value in trap::read when no data was read'
+								}
+							}
+						} else {
+							v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
+								val: input_arr[0]
+							})) or {
+								return VMError{
+									message: 'Failed to set value in trap::read after reading valid data'
+								}
+							}
+						}
+					}
+				}
+				.blocking_read {
+					mut input_arr := []u8{len: 1}
+					read := v.input.read(mut input_arr) or { -1 }
+					if read == -1 {
+						input_arr[0] = 255
+					}
+
+					// Handling ctrl-d -> EOF for consistency sake
+					if input_arr[0] == 4 {
+						input_arr[0] = 255
+					}
+
+					// Don't really know what the best option is here
+					// but at least we don't get stuck in the shell lmao
+					if input_arr[0] == 3 {
+						exit(0)
+					}
+
+					v.set_value(instruction.op1, bytecode.Operand(bytecode.Immediate{
+						val: input_arr[0]
+					})) or {
+						return VMError{
+							message: 'Failed to set value in trap::blocking_read after reading valid data'
+						}
+					}
+				}
 				.halt {
 					v.sr = previous_sr
 					length = 0
 					done = true
 				}
 			}
+			v.sr.set(.peripheral)
 		}
 	}
 

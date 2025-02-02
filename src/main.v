@@ -1,6 +1,8 @@
 module main
 
 import tui_console
+import cli_console
+import graphics_console
 import cli
 import os
 import dst
@@ -13,13 +15,33 @@ fn main() {
 
 	mut tui_cmd := cli.Command{
 		name:          'tui'
-		description:   'tui step debugger'
+		description:   'tui step debugger, no support for graphics or input/output'
 		usage:         'nothing for now'
 		required_args: 0
 		execute:       tui_func
 	}
 
 	app.add_command(tui_cmd)
+
+	mut cli_cmd := cli.Command{
+		name:          'cli'
+		description:   'cli platform for input/output, no support for graphics'
+		usage:         'nothing for now'
+		required_args: 0
+		execute:       cli_func
+	}
+
+	app.add_command(cli_cmd)
+
+	mut graphics_cmd := cli.Command{
+		name:          'graphics'
+		description:   'graphics display console'
+		usage:         'nothing for now'
+		required_args: 0
+		execute:       graphics_func
+	}
+
+	app.add_command(graphics_cmd)
 
 	mut dst_cmd := cli.Command{
 		name:          'dst'
@@ -63,6 +85,14 @@ fn main() {
 
 fn tui_func(cmd cli.Command) ! {
 	tui_console.run()!
+}
+
+fn cli_func(cmd cli.Command) ! {
+	cli_console.run()!
+}
+
+fn graphics_func(cmd cli.Command) ! {
+	graphics_console.run()!
 }
 
 fn dst_func(cmd cli.Command) ! {

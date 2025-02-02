@@ -1,8 +1,10 @@
 module dst
 
 import vm
+import noblock
 import rand
 import rand.musl
+import strings
 
 pub struct DSTError {
 	Error
@@ -31,24 +33,28 @@ pub fn run(seed ?int, max_time ?int) !u32 {
 	ram := rng.bytes(0x10000)!
 
 	mut vm_instance := vm.VM{
-		pc:  rng.u16()
-		sp:  u16(rng.u32_in_range(256, 4096)!)
-		ra:  rng.u16()
-		r1:  rng.u8()
-		r2:  rng.u8()
-		r3:  rng.u8()
-		r4:  rng.u8()
-		r5:  rng.u8()
-		r6:  rng.u8()
-		r7:  rng.u8()
-		r8:  rng.u8()
-		r9:  rng.u8()
-		r10: rng.u8()
-		r11: rng.u8()
-		r12: rng.u8()
-		r13: rng.u8()
-		r14: rng.u8()
-		r15: rng.u8()
+		input:  noblock.NoblockString{
+			internal_string: 'test input'
+		}
+		output: strings.new_builder(10)
+		pc:     rng.u16()
+		sp:     u16(rng.u32_in_range(256, 4096)!)
+		ra:     rng.u16()
+		r1:     rng.u8()
+		r2:     rng.u8()
+		r3:     rng.u8()
+		r4:     rng.u8()
+		r5:     rng.u8()
+		r6:     rng.u8()
+		r7:     rng.u8()
+		r8:     rng.u8()
+		r9:     rng.u8()
+		r10:    rng.u8()
+		r11:    rng.u8()
+		r12:    rng.u8()
+		r13:    rng.u8()
+		r14:    rng.u8()
+		r15:    rng.u8()
 	}
 
 	for i, b in ram {
