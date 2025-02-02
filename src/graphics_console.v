@@ -4,6 +4,8 @@ import ascii_blocks as ab
 import color
 import time
 
+const target_fps = 240
+
 pub fn run() ! {
 	graphics := ab.AsciiBlocks.init(10, 10, 1)
 
@@ -14,7 +16,7 @@ pub fn run() ! {
 			graphics.buffer_set_background(0, color.Color.rgb(val, 128, val))!
 			graphics.buffer_display(0)!
 			sw.stop()
-			time.sleep(time.millisecond * 16 - sw.elapsed())
+			time.sleep(time.millisecond * (f64(1) / target_fps * 1000) - sw.elapsed())
 		}
 	}
 }
