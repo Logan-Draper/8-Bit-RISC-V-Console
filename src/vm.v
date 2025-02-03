@@ -4,6 +4,8 @@ import bytecode
 import noblock
 import io
 import os
+import graphics
+import ascii_blocks
 
 struct VMError {
 	Error
@@ -37,7 +39,8 @@ pub mut:
 	input  noblock.NoblockReader = noblock.NoblockFD{
 		file: os.stdin()
 	}
-	output io.Writer = os.stdout()
+	output io.Writer               = os.stdout()
+	gpu    graphics.GraphicsDevice = ascii_blocks.AsciiBlocks.init(0, 0, 0)
 	ram    [65536]u8
 	pc     u16 = 0x1000
 	sp     u16 = 0x0100

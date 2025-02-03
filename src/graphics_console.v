@@ -6,7 +6,7 @@ import time
 import graphics
 import math
 
-const target_fps = 30
+const target_fps = 15
 const width = 65
 const height = 65
 
@@ -20,7 +20,7 @@ pub fn (err GraphicsConsoleError) msg() string {
 }
 
 pub fn run() ! {
-	mut graphics_dev := ab.AsciiBlocks.init(width, height, 2)
+	mut graphics_dev := graphics.GraphicsDevice(ab.AsciiBlocks.init(width, height, 2))
 
 	star := [graphics.GeometricPoint{
 		x: 0
@@ -57,6 +57,12 @@ pub fn run() ! {
 		y: -12
 	}]
 
+	mut star1_vel := 1
+	mut star2_vel := -1
+
+	mut star1_x := 15
+	mut star2_x := 40
+
 	mut val := u8(0)
 	mut f_val := 0.0
 	for {
@@ -70,16 +76,31 @@ pub fn run() ! {
 		}
 
 		graphics_dev.draw_poly_filled(current_buffer, star.map(graphics.Point{
-			// x: u16(it.x * (math.sin(f_val)) + 30)
-			// y: u16(it.y + 3 * math.sin(2 * f_val) + 17)
-			x: u16(it.x + 30)
-			y: u16(it.y + 17)
-		}), color.blue)!
+			x: u16(it.x * (math.sin(f_val)) + star1_x)
+			y: u16(it.y + 3 * math.sin(2 * f_val) + 17)
+		}), color.Color.rgb(val % 256, 255, val % 128))!
+
+		graphics_dev.draw_poly(current_buffer, star.map(graphics.Point{
+			x: u16(it.x * (math.cos(f_val * 1.5)) + star2_x)
+			y: u16(it.y + 3 * math.cos(1.25 * f_val) + 45)
+		}), color.Color.rgb(255, val % 128, val % 64))!
+
+		val++
+		f_val += 0.08
+
+		star1_x += star1_vel
+		star2_x += star2_vel
+
+		if star1_x <= 15 || star1_x >= 47 {
+			star1_vel *= -1
+		}
+
+		if star2_x <= 15 || star2_x >= 47 {
+			star2_vel *= -1
+		}
 
 		graphics_dev.buffer_display(current_buffer)!
 		sw.stop()
 		time.sleep(time.millisecond * (f64(1) / target_fps * 1000) - sw.elapsed())
-		val++
-		f_val += 0.08
 	}
 }

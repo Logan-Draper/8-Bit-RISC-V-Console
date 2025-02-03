@@ -36,6 +36,10 @@ fn reciprocal_fractional_part(x f64) f64 {
 }
 
 fn slope(x1 f64, y1 f64, x2 f64, y2 f64) f64 {
+	bottom := x2 - x1
+	if bottom == 0 {
+		return 0
+	}
 	return (y2 - y1) / (x2 - x1)
 }
 
@@ -395,6 +399,8 @@ pub fn (mut ab AsciiBlocks) draw_poly_filled(buffer u8, points []graphics.Point,
 		}
 	}
 
+	ab.draw_poly(buffer, points, c)!
+
 	// Make all edges
 	mut edges := []Edge{}
 	for i := 0; i < points.len - 1; i++ {
@@ -403,8 +409,8 @@ pub fn (mut ab AsciiBlocks) draw_poly_filled(buffer u8, points []graphics.Point,
 		x2 := points[i + 1].x
 		y2 := points[i + 1].y
 
-		min_y := math.min(y1, y2)
-		max_y := math.max(y1, y2)
+		min_y := if y1 < y2 { y1 } else { y2 }
+		max_y := if y1 > y2 { y1 } else { y2 }
 
 		x_min_y := if y1 <= y2 { x1 } else { x2 }
 		s := slope(x1, y1, x2, y2)
@@ -445,6 +451,7 @@ pub fn (mut ab AsciiBlocks) draw_poly_filled(buffer u8, points []graphics.Point,
 		x_min_y: it.x_min_y
 		slope:   1 / it.slope
 	}).sorted(a.x_min_y < b.x_min_y)
+	global_edge_table.delete_many(0, active_edge_table.len)
 
 	ab.buffers[buffer][points[0].y][points[0].x] = c
 
@@ -458,10 +465,17 @@ pub fn (mut ab AsciiBlocks) draw_poly_filled(buffer u8, points []graphics.Point,
 
 		// Draw pixels between odd&even pairs
 		for i in 0 .. even_edges.len {
-			x_start := int(math.ceil(even_edges[i].x_min_y))
-			x_end := int(math.floor(odd_edges[i].x_min_y))
+			if i >= odd_edges.len {
+				break
+			}
+
+			x_start := int(even_edges[i].x_min_y + 0.99)
+			x_end := int(odd_edges[i].x_min_y)
 
 			for x := x_start; x <= x_end; x++ {
+				if scan_line >= ab.buffers[buffer].len || x >= ab.buffers[buffer][scan_line].len {
+					continue
+				}
 				ab.buffers[buffer][scan_line][x] = c
 			}
 		}
@@ -476,7 +490,7 @@ pub fn (mut ab AsciiBlocks) draw_poly_filled(buffer u8, points []graphics.Point,
 		})
 
 		// Add new edges
-		for global_edge_table.len > 0 && int(global_edge_table[0].min_y) <= scan_line {
+		for global_edge_table.len > 0 && int(global_edge_table[0].min_y) == scan_line {
 			active_edge_table << ActiveEdge{
 				max_y:   int(global_edge_table[0].max_y)
 				x_min_y: global_edge_table[0].x_min_y
