@@ -89,16 +89,18 @@ pub fn run() ! {
 	binary := arrays.flatten(program.map(it.encode_instruction()!))
 	mut vm_instance := vm.create_vm_with_program(binary)!
 
-	mut original_term := termios.Termios{}
-	termios.tcgetattr(0, mut original_term)
+	$if !windows {
+		mut original_term := termios.Termios{}
+		termios.tcgetattr(0, mut original_term)
 
-	mut silent_term := original_term
-	silent_term.c_lflag &= (termios.invert(C.ECHO) & termios.invert(C.ICANON) & termios.invert(C.ISIG))
-	termios.tcsetattr(0, C.TCSANOW, mut silent_term)
+		mut silent_term := original_term
+		silent_term.c_lflag &= (termios.invert(C.ECHO) & termios.invert(C.ICANON) & termios.invert(C.ISIG))
+		termios.tcsetattr(0, C.TCSANOW, mut silent_term)
 
-	at_exit(fn [mut original_term] () {
-		termios.tcsetattr(0, C.TCSANOW, mut original_term)
-	})!
+		at_exit(fn [mut original_term] () {
+			termios.tcsetattr(0, C.TCSANOW, mut original_term)
+		})!
+	}
 
 	vm_instance.run()!
 }

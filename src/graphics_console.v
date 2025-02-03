@@ -6,7 +6,7 @@ import time
 import graphics
 import math
 
-const target_fps = 15
+const target_fps = 30
 const width = 65
 const height = 65
 
@@ -80,10 +80,20 @@ pub fn run() ! {
 			y: u16(it.y + 3 * math.sin(2 * f_val) + 17)
 		}), color.Color.rgb(val % 256, 255, val % 128))!
 
+		graphics_dev.draw_poly_filled(current_buffer, star.map(graphics.Point{
+			x: u16((f64(it.x) * 0.3) * (math.sin(f_val)) + star1_x)
+			y: u16((f64(it.y) * 0.3) + 3 * math.sin(2 * f_val) + 17)
+		}), color.red)!
+
 		graphics_dev.draw_poly(current_buffer, star.map(graphics.Point{
 			x: u16(it.x * (math.cos(f_val * 1.5)) + star2_x)
 			y: u16(it.y + 3 * math.cos(1.25 * f_val) + 45)
 		}), color.Color.rgb(255, val % 128, val % 64))!
+
+		graphics_dev.draw_poly(current_buffer, star.map(graphics.Point{
+			x: u16((f64(it.x) * 0.3) * (math.cos(f_val * 1.5)) + star2_x)
+			y: u16((f64(it.y) * 0.3) + 3 * math.cos(1.25 * f_val) + 45)
+		}), color.red)!
 
 		val++
 		f_val += 0.08
