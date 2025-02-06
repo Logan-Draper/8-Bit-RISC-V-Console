@@ -1,6 +1,7 @@
 module graphics_console
 
-import ascii_blocks as ab
+// import ascii_blocks as ab
+import braille_dots as ab
 import color
 import time
 import graphics
@@ -20,7 +21,8 @@ pub fn (err GraphicsConsoleError) msg() string {
 }
 
 pub fn run() ! {
-	mut graphics_dev := graphics.GraphicsDevice(ab.AsciiBlocks.init(width, height, 2))
+	// mut graphics_dev := graphics.GraphicsDevice(ab.AsciiBlocks.init(width, height, 2))
+	mut graphics_dev := graphics.GraphicsDevice(ab.BrailleDots.init(width, height, 2))
 
 	star := [graphics.GeometricPoint{
 		x: 0
